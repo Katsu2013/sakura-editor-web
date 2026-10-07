@@ -317,6 +317,24 @@ body, html {
   flex-shrink: 0;
 }
 
+.win32-tab-multiline {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.win32-tab-row {
+  display: flex;
+  width: 100%;
+  margin-bottom: -1px;
+  z-index: 1;
+}
+
+.win32-tab-row.active-row {
+  z-index: 2;
+}
+
 .win32-tab-btn {
   padding: 4px 10px;
   background: #ece9d8;
