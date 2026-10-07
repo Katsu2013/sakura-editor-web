@@ -268,13 +268,12 @@ Canvas 上での等幅配置を保証するため、文字幅は以下の数式�
 * **目盛り描画アルゴリズム**:
   * カラム番号 $col = 0, 1, 2, \dots, \text{maxCols}$ に対し、表示X座標：
     $$X(col) = X_{\text{offset}} + col \times W_{\text{half}}$$
-  * **10桁目盛り ($col \pmod{10} == 0$)**:
-    * 縦線: $Y = 8\text{px} \sim 19\text{px}$（線の長さ 12px）
-    * 数字表示: 桁数 $\lfloor col / 10 \rfloor$（0, 1, 2, ...）を $Y = 8\text{px}$ に中央揃えで描画。
-  * **5桁目盛り ($col \pmod{10} == 5$)**:
-    * 縦線: $Y = 12\text{px} \sim 19\text{px}$（線の長さ 8px）
-  * **1桁ドット目盛り ($col \pmod{5} \ne 0$)**:
-    * 半径 0.8px のドット（小さな正方形または円）を $Y = 16\text{px}$ に描画。
+  * **10桁目盛り ($col \pmod{10} == 0, col \ge 10$)**:
+    * 縦線: $Y = 15\text{px} \sim 19\text{px}$（小目盛り）
+    * 数字表示: 桁数 $col / 10$（1, 2, 3, ... 10, 11, 12）を $Y = 12\text{px}$ に中央揃えで描画（※ 0桁目は数字非表示）。
+  * **2文字ごとのドット目盛り ($col \pmod{2} == 0, col \pmod{10} \ne 0$)**:
+    * 半径 0.75px のドット（小さな丸点）を $Y = 15\text{px}$ に描画（1..2..3.. の間に正確に4個のドット `·` を配置）。
+
   * **折り返し位置マーカー**:
     * 折り返し桁数 $col_{\text{wrap}}$ の位置に、赤色（`#cc0000`）の下向き三角マーカー（`▼`）を描画。
   * **ルーラー下端境界線**:
@@ -475,6 +474,8 @@ Canvas 上での等幅配置を保証するため、文字幅は以下の数式�
 | 17 | **印刷ページ設定** | `PageSetupDialog` | `Ctrl+Alt+P` | `pageSize`, `orientation`, `margins`, `header`, `footer` | 印刷用紙余白・ヘッダー/フッター設定の保存 |
 | 18 | **印刷プレビュー** | `PrintPreviewDialog`| `Shift+Ctrl+P` | `pageSize`, `totalPages`, `currentPage` | 改ページシミュレーションとページ切替プレビュー、`window.print()` 実行 |
 | 19 | **バージョン情報** | `AboutDialog` | ヘルプメニュー | `version: 2.4.3.7173`, `buildInfo` | サクラエディタ32bit公式ダイアログの完全再現表示 |
+| 20 | **共通設定 - 強調キーワード** | `KeywordDialog` | タイプ別設定カラータブ | `selectedSet`, `keywords`, `matchCase` | 4カラムマルチカラムキーワード一覧、インポート/エクスポート、単語編集 |
+
 
 ---
 

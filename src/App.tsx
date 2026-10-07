@@ -2609,10 +2609,12 @@ export const App: React.FC = () => {
           onOpen={handleOpen}
           onSave={() => handleSave(false)}
           onSaveAs={() => handleSave(true)}
+          onPrint={() => window.print()}
           onUndo={handleUndo}
           onRedo={handleRedo}
-          onIndent={handleIndent}
-          onUnindent={handleUnindent}
+          onCut={handleCut}
+          onCopy={handleCopy}
+          onPaste={handlePaste}
           onFind={() => {
             setIsReplaceMode(false);
             setIsSearchOpen(true);
@@ -2623,31 +2625,24 @@ export const App: React.FC = () => {
             setIsReplaceMode(true);
             setIsSearchOpen(true);
           }}
-          onToggleSearchMark={() =>
-            setSearchHighlight((prev) =>
-              prev ? null : { query: 'サクラ', isRegex: false, matchCase: false }
-            )
-          }
-          onReturnSearchOrigin={handleReturnSearchOrigin}
-          canReturnSearchOrigin={!!searchOriginPos}
+          onGrep={() => setIsGrepOpen(true)}
+          onOutline={() => setIsOutlineOpen(true)}
           onBookmarkToggle={() => {
             currentDoc.bookmarkManager.toggle(currentDoc.cursor.line);
             updateCurrentDoc((d) => ({ ...d }));
-          }}
-          onBookmarkNext={() => {
-            const next = currentDoc.bookmarkManager.getNext(currentDoc.cursor.line, currentDoc.buffer.getLineCount());
-            if (next !== null) updateCurrentDoc((d) => ({ ...d, cursor: { line: next, column: 0 } }));
           }}
           onBookmarkPrev={() => {
             const prev = currentDoc.bookmarkManager.getPrev(currentDoc.cursor.line);
             if (prev !== null) updateCurrentDoc((d) => ({ ...d, cursor: { line: prev, column: 0 } }));
           }}
+          onBookmarkNext={() => {
+            const next = currentDoc.bookmarkManager.getNext(currentDoc.cursor.line, currentDoc.buffer.getLineCount());
+            if (next !== null) updateCurrentDoc((d) => ({ ...d, cursor: { line: next, column: 0 } }));
+          }}
           onBookmarkClear={() => {
             currentDoc.bookmarkManager.clearAll();
             updateCurrentDoc((d) => ({ ...d }));
           }}
-          onOutline={() => setIsOutlineOpen(true)}
-          onTypeList={() => setIsTypeListOpen(true)}
           onTypeSettings={() => {
             setEditingTypeItem(activeTypeSetting);
             setTypeSettingInitialTab('screen');
@@ -2657,11 +2652,11 @@ export const App: React.FC = () => {
             setCommonSettingInitialTab('general');
             setIsCommonSettingsOpen(true);
           }}
-          onFont={() => setIsFontOpen(true)}
-          onExportIni={handleExportIni}
           canUndo={currentDoc.undoManager.canUndo()}
           canRedo={currentDoc.undoManager.canRedo()}
           canSave={currentDoc.isModified}
+          canCut={!!currentDoc.selection}
+          canCopy={!!currentDoc.selection}
           flatButtons={commonSettings.toolbar.flatButtons}
           showTooltips={commonSettings.toolbar.showTooltips}
         />

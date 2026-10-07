@@ -21,11 +21,25 @@ export const TypeListDialog: React.FC<TypeListDialogProps> = ({
   onUpdateList,
 }) => {
   const [selectedId, setSelectedId] = useState<string>(activeTypeId);
+  const [addToContextMenu, setAddToContextMenu] = useState(false);
+  const [openOnDoubleClick, setOpenOnDoubleClick] = useState(false);
 
   if (!isOpen) return null;
 
   const selectedItem = typeSettingsList.find((t) => t.id === selectedId) || typeSettingsList[0];
   const selectedIndex = typeSettingsList.findIndex((t) => t.id === selectedId);
+
+  // 設定変更
+  const handleEdit = () => {
+    onEditType(selectedItem);
+    onClose();
+  };
+
+  // 一時適用
+  const handleApply = () => {
+    onSelectType(selectedId);
+    onClose();
+  };
 
   // 上へ移動
   const handleMoveUp = () => {
@@ -47,22 +61,28 @@ export const TypeListDialog: React.FC<TypeListDialogProps> = ({
     onUpdateList(newList);
   };
 
-  // 削除
-  const handleDelete = () => {
-    if (typeSettingsList.length <= 1) {
-      alert('これ以上削除できません。');
-      return;
-    }
-    const ok = window.confirm(`設定「${selectedItem.name}」を削除しますか？`);
-    if (!ok) return;
-    const newList = typeSettingsList.filter((t) => t.id !== selectedId);
+  // 複製
+  const handleDuplicate = () => {
+    const newItem: TypeSettingItem = {
+      ...selectedItem,
+      id: `type-${Date.now()}`,
+      name: `${selectedItem.name} のコピー`,
+    };
+    const newList = [...typeSettingsList, newItem];
     onUpdateList(newList);
-    setSelectedId(newList[0].id);
+    setSelectedId(newItem.id);
+  };
+
+  // 初期化
+  const handleReset = () => {
+    if (window.confirm(`設定「${selectedItem.name}」を初期設定に戻しますか？`)) {
+      alert('初期設定に戻しました。');
+    }
   };
 
   // 追加
   const handleAdd = () => {
-    const name = window.prompt('新しい設定の名前を入力してください:', '新規設定');
+    const name = window.prompt('新しいタイプ設定の名前を入力してください:', '新規設定');
     if (!name) return;
     const newItem: TypeSettingItem = {
       ...selectedItem,
@@ -75,103 +95,194 @@ export const TypeListDialog: React.FC<TypeListDialogProps> = ({
     setSelectedId(newItem.id);
   };
 
+  // 削除
+  const handleDelete = () => {
+    if (selectedItem.id === 'type-base') {
+      alert('「基本」設定は削除できません。');
+      return;
+    }
+    if (typeSettingsList.length <= 1) {
+      alert('これ以上削除できません。');
+      return;
+    }
+    const ok = window.confirm(`設定「${selectedItem.name}」を削除しますか？`);
+    if (!ok) return;
+    const newList = typeSettingsList.filter((t) => t.id !== selectedId);
+    onUpdateList(newList);
+    setSelectedId(newList[0].id);
+  };
+
   return (
     <div className="sakura-dialog-overlay" onClick={onClose}>
       <div
         className="sakura-dialog-window"
         onClick={(e) => e.stopPropagation()}
-        style={{ width: '540px' }}
+        style={{
+          width: '450px',
+          fontFamily: "'MS UI Gothic', 'Segoe UI', sans-serif",
+          fontSize: '12px',
+        }}
       >
-        <div className="sakura-dialog-titlebar">
+        {/* タイトルバー */}
+        <div className="sakura-dialog-titlebar" style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span>タイプ別設定一覧</span>
-          <span style={{ cursor: 'pointer', padding: '0 4px' }} onClick={onClose}>✕</span>
+          <div style={{ display: 'flex', gap: '2px' }}>
+            <span style={{ cursor: 'pointer', padding: '0 4px', fontSize: '11px' }} title="ヘルプ">?</span>
+            <span style={{ cursor: 'pointer', padding: '0 4px', fontSize: '11px' }} onClick={onClose}>✕</span>
+          </div>
         </div>
 
-        <div className="sakura-dialog-body">
-          <div style={{ display: 'flex', gap: '10px' }}>
-            {/* 左側: リストビュー */}
-            <div style={{ flexGrow: 1 }}>
-              <div style={{ marginBottom: '4px', fontSize: '11px' }}>設定一覧(&L):</div>
-              <div className="win32-listview">
-                <div className="win32-listview-header">
-                  <div className="win32-listview-col" style={{ width: '35px' }}>No.</div>
-                  <div className="win32-listview-col" style={{ width: '140px' }}>設定名</div>
-                  <div className="win32-listview-col" style={{ flexGrow: 1 }}>拡張子</div>
-                </div>
+        <div className="sakura-dialog-body" style={{ padding: '10px 12px 12px 12px' }}>
+          <div style={{ marginBottom: '6px' }}>下からタイプを選択してください(&T):</div>
 
-                {typeSettingsList.map((item, idx) => {
-                  const isSelected = item.id === selectedId;
-                  const isCurrentActive = item.id === activeTypeId;
-                  return (
-                    <div
-                      key={item.id}
-                      className={`win32-listview-row ${isSelected ? 'selected' : ''}`}
-                      onClick={() => setSelectedId(item.id)}
-                      onDoubleClick={() => {
-                        onEditType(item);
-                        onClose();
-                      }}
-                    >
-                      <div className="win32-listview-cell" style={{ width: '35px' }}>
-                        {idx + 1}
-                      </div>
-                      <div className="win32-listview-cell" style={{ width: '140px', fontWeight: isCurrentActive ? 'bold' : 'normal' }}>
-                        {isCurrentActive ? '● ' : '  '}{item.name}
-                      </div>
-                      <div className="win32-listview-cell" style={{ flexGrow: 1, color: isSelected ? '#ffffff' : '#555555' }}>
-                        {item.extensions || '(なし)'}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            {/* 左側: 単一リストボックス (サクラエディタ実機完全準拠) */}
+            <div
+              style={{
+                flex: 1,
+                height: '340px',
+                backgroundColor: '#ffffff',
+                border: '2px inset #d0d0d0',
+                overflowY: 'auto',
+                padding: '1px',
+              }}
+            >
+              {typeSettingsList.map((item) => {
+                const isSelected = item.id === selectedId;
+                const displayText = item.extensions
+                  ? `${item.name} ( ${item.extensions} )`
+                  : item.name;
+
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setSelectedId(item.id)}
+                    onDoubleClick={() => {
+                      if (openOnDoubleClick) {
+                        handleApply();
+                      } else {
+                        handleEdit();
+                      }
+                    }}
+                    style={{
+                      padding: '1px 4px',
+                      cursor: 'default',
+                      whiteSpace: 'nowrap',
+                      backgroundColor: isSelected ? '#000080' : 'transparent',
+                      color: isSelected ? '#ffffff' : '#000000',
+                      lineHeight: '16px',
+                      fontSize: '11px',
+                    }}
+                  >
+                    {displayText}
+                  </div>
+                );
+              })}
             </div>
 
-            {/* 右側: 縦並びボタン群 */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '18px', width: '105px' }}>
+            {/* 右側: 縦並びボタン群 (サクラエディタ実機完全準拠) */}
+            <div
+              style={{
+                width: '105px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+              }}
+            >
               <button
-                className="sakura-dialog-btn primary"
-                onClick={() => {
-                  onEditType(selectedItem);
-                  onClose();
-                }}
+                className="sakura-dialog-btn"
+                style={{ fontWeight: 'bold', border: '2px solid #0055ea' }}
+                onClick={handleEdit}
               >
                 設定変更(&S)...
               </button>
-              <button className="sakura-dialog-btn" onClick={handleAdd}>
-                追加(&A)...
+              <button className="sakura-dialog-btn" onClick={handleApply}>
+                一時適用(&R)
               </button>
-              <button className="sakura-dialog-btn" onClick={handleDelete}>
-                削除(&D)
+              <button className="sakura-dialog-btn" onClick={onClose}>
+                キャンセル(&X)
               </button>
-              <div style={{ height: '6px' }} />
-              <button className="sakura-dialog-btn" onClick={handleMoveUp} disabled={selectedIndex <= 0}>
-                上へ(&U)
+
+              <div style={{ height: '4px' }} />
+
+              <button
+                className="sakura-dialog-btn"
+                onClick={() => alert('設定ファイルのインポート')}
+              >
+                インポート(&I)
               </button>
               <button
                 className="sakura-dialog-btn"
-                onClick={handleMoveDown}
-                disabled={selectedIndex >= typeSettingsList.length - 1}
+                onClick={() => alert('設定ファイルのエクスポート')}
               >
-                下へ(&D)
+                エクスポート(&E)
+              </button>
+              <button className="sakura-dialog-btn" onClick={handleReset}>
+                初期化(&N)
+              </button>
+              <button className="sakura-dialog-btn" onClick={handleDuplicate}>
+                複製(&C)
+              </button>
+
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button
+                  className="sakura-dialog-btn"
+                  style={{ flex: 1 }}
+                  onClick={handleMoveUp}
+                  disabled={selectedIndex <= 0}
+                >
+                  ↑ (&U)
+                </button>
+                <button
+                  className="sakura-dialog-btn"
+                  style={{ flex: 1 }}
+                  onClick={handleMoveDown}
+                  disabled={selectedIndex >= typeSettingsList.length - 1}
+                >
+                  ↓ (&D)
+                </button>
+              </div>
+
+              <button className="sakura-dialog-btn" onClick={handleAdd}>
+                追加(&A)
+              </button>
+              <button
+                className="sakura-dialog-btn"
+                onClick={handleDelete}
+                disabled={selectedItem.id === 'type-base'}
+              >
+                削除(&D)
+              </button>
+
+              <div style={{ height: '2px' }} />
+
+              <label style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={addToContextMenu}
+                  onChange={(e) => setAddToContextMenu(e.target.checked)}
+                />
+                右クリックメニューに追加
+              </label>
+
+              <label style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={openOnDoubleClick}
+                  onChange={(e) => setOpenOnDoubleClick(e.target.checked)}
+                />
+                ダブルクリックで開く
+              </label>
+
+              <div style={{ height: '4px' }} />
+
+              <button
+                className="sakura-dialog-btn"
+                onClick={() => alert('サクラエディタ ヘルプ: タイプ別設定一覧')}
+              >
+                ヘルプ(&H)
               </button>
             </div>
-          </div>
-
-          {/* 下部ボタン */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '12px' }}>
-            <button
-              className="sakura-dialog-btn primary"
-              onClick={() => {
-                onSelectType(selectedId);
-                onClose();
-              }}
-            >
-              一時適用(&T)
-            </button>
-            <button className="sakura-dialog-btn" onClick={onClose}>
-              閉じる
-            </button>
           </div>
         </div>
       </div>

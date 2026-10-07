@@ -498,30 +498,25 @@ export class CanvasRenderer {
     ctx.strokeStyle = '#606060';
     ctx.lineWidth = 1;
 
-    const startCol = Math.max(0, Math.floor(scrollLeft / charWidth));
+    const startCol = Math.max(1, Math.floor(scrollLeft / charWidth));
     const endCol = startCol + Math.ceil((width - gutterWidth) / charWidth) + 5;
 
     for (let c = startCol; c <= endCol; c++) {
       const colX = gutterWidth + (c * charWidth - scrollLeft);
 
       if (c % 10 === 0) {
-        // 10桁ごとの目盛り線と数字 (0, 1, 2, 3, ... 9, 10, 11, 12)
+        // 10桁ごとの目盛り線と数字 (1, 2, 3, ... 9, 10, 11, 12) ※ 0桁目は表示しない
         ctx.beginPath();
-        ctx.moveTo(colX + 0.5, rulerHeight - 7);
-        ctx.lineTo(colX + 0.5, rulerHeight - 1);
+        ctx.moveTo(colX - charWidth / 2 + 0.5, rulerHeight - 5);
+        ctx.lineTo(colX - charWidth / 2 + 0.5, rulerHeight - 1);
         ctx.stroke();
 
-        ctx.fillText(String(c / 10), colX - 2, rulerHeight - 9);
-      } else if (c % 5 === 0) {
-        // 5桁ごとのサブ目盛り (サクラエディタ特有の小目盛り)
-        ctx.beginPath();
-        ctx.moveTo(colX + 0.5, rulerHeight - 4);
-        ctx.lineTo(colX + 0.5, rulerHeight - 1);
-        ctx.stroke();
-      } else {
-        // 桁ドット (サクラエディタ特有のドット目盛り)
-        ctx.fillStyle = '#707070';
-        ctx.fillRect(colX - 0.5, rulerHeight - 3, 1, 1);
+        const numText = String(c / 10);
+        ctx.fillText(numText, colX - charWidth / 2 - (numText.length > 1 ? 4 : 2), rulerHeight - 8);
+      } else if (c % 2 === 0) {
+        // 2文字ごとのドット目盛り (1..2..3.. の間の4つのドット)
+        ctx.fillStyle = '#606060';
+        ctx.fillRect(colX - charWidth / 2, rulerHeight - 5, 1.2, 1.2);
       }
     }
 
