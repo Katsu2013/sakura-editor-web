@@ -1,0 +1,362 @@
+/* サクラエディタ クラシック Windows スタイルシート */
+
+:root {
+  --win-bg: #ece9d8;
+  --win-face: #f0f0f0;
+  --win-border-light: #ffffff;
+  --win-border-shadow: #808080;
+  --win-border-dark: #404040;
+  --win-text: #000000;
+  --win-highlight: #0a246a;
+  --win-highlight-text: #ffffff;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'MS UI Gothic', 'Segoe UI', Tahoma, sans-serif;
+  font-size: 12px;
+  user-select: none;
+  background-color: var(--win-face);
+  color: var(--win-text);
+}
+
+/* メニューバー */
+.sakura-menu-bar {
+  display: flex;
+  background: #f0f0f0;
+  border-bottom: 1px solid #d0d0d0;
+  padding: 1px 2px;
+  font-size: 12px;
+  position: relative;
+  z-index: 100;
+}
+
+.sakura-menu-item {
+  padding: 3px 6px;
+  cursor: default;
+  position: relative;
+}
+
+.sakura-menu-item:hover,
+.sakura-menu-item.active {
+  background-color: #3399ff;
+  color: #ffffff;
+}
+
+/* ドロップダウンメニュー */
+.sakura-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #ffffff;
+  border: 1px solid #999999;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  min-width: 180px;
+  z-index: 200;
+  color: #000000;
+  padding: 2px 0;
+}
+
+.sakura-dropdown-item {
+  padding: 4px 20px 4px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sakura-dropdown-item:hover {
+  background-color: #3399ff;
+  color: #ffffff;
+}
+
+.sakura-dropdown-item.disabled {
+  color: #888888;
+  opacity: 0.45;
+  filter: grayscale(100%);
+  pointer-events: none;
+  cursor: default;
+}
+
+.sakura-dropdown-item.disabled svg {
+  opacity: 0.45;
+  filter: grayscale(100%);
+}
+
+.sakura-dropdown-separator {
+  height: 1px;
+  background: #e0e0e0;
+  margin: 3px 2px;
+}
+
+/* ツールバー */
+.sakura-toolbar {
+  display: flex;
+  align-items: center;
+  background: #f5f5f5;
+  border-bottom: 1px solid #c0c0c0;
+  padding: 2px 4px;
+  gap: 2px;
+}
+
+.sakura-tool-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  padding: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #333333;
+}
+
+.sakura-tool-btn:hover {
+  background: #e5f1fb;
+  border-color: #70c0e7;
+}
+
+.sakura-tool-btn:active {
+  background: #cce4f7;
+  border-color: #3399ff;
+}
+
+.sakura-tool-btn:disabled {
+  opacity: 0.38 !important;
+  cursor: default !important;
+  pointer-events: none !important;
+  filter: grayscale(100%) !important;
+}
+
+.sakura-tool-separator {
+  width: 1px;
+  height: 18px;
+  background: #d0d0d0;
+  margin: 0 3px;
+}
+
+/* タブバー */
+.sakura-tabbar {
+  display: flex;
+  align-items: flex-end;
+  background: #e8e8e8;
+  border-bottom: 1px solid #b0b0b0;
+  padding-left: 4px;
+  overflow-x: auto;
+}
+
+.sakura-tab {
+  display: flex;
+  align-items: center;
+  padding: 3px 10px;
+  background: #d4d4d4;
+  border: 1px solid #b0b0b0;
+  border-bottom: none;
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+  margin-right: 2px;
+  cursor: pointer;
+  font-size: 11px;
+  max-width: 180px;
+}
+
+.sakura-tab.active {
+  background: #ffffff;
+  border-color: #808080;
+  margin-bottom: -1px;
+  padding-bottom: 4px;
+  font-weight: bold;
+}
+
+.sakura-tab-close {
+  margin-left: 6px;
+  padding: 1px 3px;
+  border-radius: 2px;
+  opacity: 0.6;
+}
+
+.sakura-tab-close:hover {
+  background: #ffcccc;
+  opacity: 1;
+}
+
+/* ステータスバー */
+.sakura-statusbar {
+  display: flex;
+  background: #f0f0f0;
+  border-top: 1px solid #b8b8b8;
+  height: 22px;
+  font-size: 11px;
+  align-items: center;
+  padding: 0 2px;
+}
+
+.sakura-status-panel {
+  padding: 2px 8px;
+  border: 1px inset #ffffff;
+  background: #f7f7f7;
+  margin-right: 2px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  box-shadow: inset 1px 1px 1px #d0d0d0;
+}
+
+/* モーダルダイアログ */
+.sakura-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 500;
+}
+
+.sakura-dialog-window {
+  background: #f0f0f0;
+  border: 1px solid #808080;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.35);
+  min-width: 360px;
+  border-radius: 2px;
+}
+
+.sakura-dialog-titlebar {
+  background: linear-gradient(to right, #0055ea, #3388ff);
+  color: #ffffff;
+  font-weight: bold;
+  padding: 4px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sakura-dialog-body {
+  padding: 12px;
+}
+
+.sakura-dialog-btn {
+  padding: 4px 14px;
+  background: #e1e1e1;
+  border: 1px solid #adadad;
+  border-radius: 2px;
+  cursor: pointer;
+  min-width: 75px;
+}
+
+.sakura-dialog-btn:hover {
+  background: #e5f1fb;
+  border-color: #70c0e7;
+}
+
+/* Win32 プロパティシート タブコントロール */
+.win32-tab-control {
+  display: flex;
+  flex-direction: column;
+}
+
+.win32-tab-header {
+  display: flex;
+  border-bottom: 1px solid #919b9c;
+  padding-left: 4px;
+}
+
+.win32-tab-btn {
+  padding: 4px 12px;
+  background: #ece9d8;
+  border: 1px solid #919b9c;
+  border-bottom: none;
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+  margin-right: 2px;
+  cursor: pointer;
+  font-size: 11px;
+  color: #000000;
+  outline: none;
+}
+
+.win32-tab-btn.active {
+  background: #f0f0f0;
+  border-color: #919b9c;
+  margin-bottom: -1px;
+  padding-bottom: 5px;
+  font-weight: bold;
+}
+
+.win32-tab-page {
+  background: #f0f0f0;
+  border: 1px solid #919b9c;
+  border-top: none;
+  padding: 12px;
+  min-height: 280px;
+}
+
+/* Win32 グループボックス */
+.win32-groupbox {
+  border: 1px solid #d0d0d0;
+  border-radius: 0;
+  margin: 8px 0;
+  padding: 10px;
+  background: transparent;
+}
+
+.win32-groupbox legend {
+  padding: 0 4px;
+  font-weight: normal;
+  color: #000000;
+}
+
+/* Win32 リストビュー */
+.win32-listview {
+  border: 2px inset #ffffff;
+  background: #ffffff;
+  width: 100%;
+  height: 240px;
+  overflow-y: auto;
+  font-size: 11px;
+}
+
+.win32-listview-header {
+  display: flex;
+  background: #ece9d8;
+  border-bottom: 1px solid #a0a0a0;
+  position: sticky;
+  top: 0;
+  font-weight: normal;
+}
+
+.win32-listview-col {
+  padding: 3px 6px;
+  border-right: 1px solid #c0c0c0;
+}
+
+.win32-listview-row {
+  display: flex;
+  cursor: pointer;
+  user-select: none;
+}
+
+.win32-listview-row:hover {
+  background: #f0f8ff;
+}
+
+.win32-listview-row.selected {
+  background: #0a246a !important;
+  color: #ffffff !important;
+}
+
+.win32-listview-cell {
+  padding: 2px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+

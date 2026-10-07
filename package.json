@@ -1,0 +1,29 @@
+{
+  "name": "sakura-editor-web",
+  "private": true,
+  "version": "2.4.3",
+  "description": "Sakura Editor 32bit Ver. 2.4.3.7173 full clone on Web (React 19 + TypeScript + Canvas)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@types/encoding-japanese": "^2.2.1",
+    "encoding-japanese": "^2.4.0",
+    "lucide-react": "^1.52.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.81.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  }
+}
