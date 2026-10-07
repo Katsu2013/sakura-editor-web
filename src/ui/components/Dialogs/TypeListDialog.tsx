@@ -133,14 +133,14 @@ export const TypeListDialog: React.FC<TypeListDialogProps> = ({
         </div>
 
         <div className="sakura-dialog-body" style={{ padding: '10px 12px 12px 12px' }}>
-          <div style={{ marginBottom: '6px' }}>下からタイプを選択してください(&T):</div>
+          <div style={{ marginBottom: '6px' }}>下からタイプを選択してください(T):</div>
 
           <div style={{ display: 'flex', gap: '10px' }}>
             {/* 左側: 単一リストボックス (サクラエディタ実機完全準拠) */}
             <div
               style={{
                 flex: 1,
-                height: '340px',
+                height: '370px',
                 backgroundColor: '#ffffff',
                 border: '2px inset #d0d0d0',
                 overflowY: 'auto',
@@ -170,8 +170,8 @@ export const TypeListDialog: React.FC<TypeListDialogProps> = ({
                       whiteSpace: 'nowrap',
                       backgroundColor: isSelected ? '#000080' : 'transparent',
                       color: isSelected ? '#ffffff' : '#000000',
-                      lineHeight: '16px',
-                      fontSize: '11px',
+                      lineHeight: '17px',
+                      fontSize: '12px',
                     }}
                   >
                     {displayText}
@@ -183,7 +183,7 @@ export const TypeListDialog: React.FC<TypeListDialogProps> = ({
             {/* 右側: 縦並びボタン群 (サクラエディタ実機完全準拠) */}
             <div
               style={{
-                width: '105px',
+                width: '98px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '4px',
@@ -191,72 +191,66 @@ export const TypeListDialog: React.FC<TypeListDialogProps> = ({
             >
               <button
                 className="sakura-dialog-btn"
-                style={{ fontWeight: 'bold', border: '2px solid #0055ea' }}
+                style={{ fontWeight: 'bold' }}
                 onClick={handleEdit}
               >
-                設定変更(&S)...
+                設定変更(S)...
               </button>
               <button className="sakura-dialog-btn" onClick={handleApply}>
-                一時適用(&R)
+                一時適用(R)
               </button>
               <button className="sakura-dialog-btn" onClick={onClose}>
-                キャンセル(&X)
+                キャンセル(X)
               </button>
 
-              <div style={{ height: '4px' }} />
+              <div style={{ height: '6px' }} />
 
               <button
                 className="sakura-dialog-btn"
                 onClick={() => alert('設定ファイルのインポート')}
               >
-                インポート(&I)
+                インポート(I)
               </button>
               <button
                 className="sakura-dialog-btn"
                 onClick={() => alert('設定ファイルのエクスポート')}
               >
-                エクスポート(&E)
+                エクスポート(E)
               </button>
               <button className="sakura-dialog-btn" onClick={handleReset}>
-                初期化(&N)
+                初期化(N)
               </button>
               <button className="sakura-dialog-btn" onClick={handleDuplicate}>
-                複製(&C)
+                複製(C)
               </button>
-
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <button
-                  className="sakura-dialog-btn"
-                  style={{ flex: 1 }}
-                  onClick={handleMoveUp}
-                  disabled={selectedIndex <= 0}
-                >
-                  ↑ (&U)
-                </button>
-                <button
-                  className="sakura-dialog-btn"
-                  style={{ flex: 1 }}
-                  onClick={handleMoveDown}
-                  disabled={selectedIndex >= typeSettingsList.length - 1}
-                >
-                  ↓ (&D)
-                </button>
-              </div>
-
+              <button
+                className="sakura-dialog-btn"
+                onClick={handleMoveUp}
+                disabled={selectedIndex <= 0}
+              >
+                ↑ (U)
+              </button>
+              <button
+                className="sakura-dialog-btn"
+                onClick={handleMoveDown}
+                disabled={selectedIndex >= typeSettingsList.length - 1}
+              >
+                ↓ (D)
+              </button>
               <button className="sakura-dialog-btn" onClick={handleAdd}>
-                追加(&A)
+                追加(A)
               </button>
               <button
                 className="sakura-dialog-btn"
                 onClick={handleDelete}
                 disabled={selectedItem.id === 'type-base'}
               >
-                削除(&D)
+                削除(D)
               </button>
 
-              <div style={{ height: '2px' }} />
+              <div style={{ height: '6px' }} />
 
-              <label style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer' }}>
+              <label style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={addToContextMenu}
@@ -265,7 +259,7 @@ export const TypeListDialog: React.FC<TypeListDialogProps> = ({
                 右クリックメニューに追加
               </label>
 
-              <label style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer' }}>
+              <label style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={openOnDoubleClick}
@@ -274,13 +268,13 @@ export const TypeListDialog: React.FC<TypeListDialogProps> = ({
                 ダブルクリックで開く
               </label>
 
-              <div style={{ height: '4px' }} />
+              <div style={{ height: '6px' }} />
 
               <button
                 className="sakura-dialog-btn"
                 onClick={() => alert('サクラエディタ ヘルプ: タイプ別設定一覧')}
               >
-                ヘルプ(&H)
+                ヘルプ(H)
               </button>
             </div>
           </div>

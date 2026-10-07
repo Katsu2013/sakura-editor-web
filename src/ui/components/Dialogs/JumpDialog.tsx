@@ -39,7 +39,7 @@ export const JumpDialog: React.FC<JumpDialogProps> = ({
         <form onSubmit={handleSubmit} className="sakura-dialog-body">
           <div style={{ marginBottom: '12px' }}>
             <label style={{ display: 'block', marginBottom: '4px' }}>
-              行番号 (1 - {totalLines})(&L):
+              行番号 (1 - {totalLines})(L):
             </label>
             <input
               type="number"
@@ -54,7 +54,7 @@ export const JumpDialog: React.FC<JumpDialogProps> = ({
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
             <button type="submit" className="sakura-dialog-btn primary">
-              ジャンプ(&J)
+              ジャンプ(J)
             </button>
             <button type="button" className="sakura-dialog-btn" onClick={onClose}>
               キャンセル

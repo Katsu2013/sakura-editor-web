@@ -180,7 +180,7 @@ export const GrepDialog: React.FC<GrepDialogProps> = ({
         <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {/* 条件 */}
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <label style={{ width: '80px' }}>条件(&N):</label>
+            <label style={{ width: '80px' }}>条件(N):</label>
             <input
               type="text"
               value={query}
@@ -197,7 +197,7 @@ export const GrepDialog: React.FC<GrepDialogProps> = ({
           {/* 置換後文字列 (置換モード時) */}
           {isReplaceMode && (
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              <label style={{ width: '80px' }}>置換後(&P):</label>
+              <label style={{ width: '80px' }}>置換後(P):</label>
               <input
                 type="text"
                 value={replaceText}
@@ -213,7 +213,7 @@ export const GrepDialog: React.FC<GrepDialogProps> = ({
 
           {/* ファイル */}
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <label style={{ width: '80px' }}>ファイル(&F):</label>
+            <label style={{ width: '80px' }}>ファイル(F):</label>
             <input
               type="text"
               value={filePattern}
@@ -224,7 +224,7 @@ export const GrepDialog: React.FC<GrepDialogProps> = ({
 
           {/* 検索対象スコープ */}
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <label style={{ width: '80px' }}>対象(&T):</label>
+            <label style={{ width: '80px' }}>対象(T):</label>
             <div style={{ display: 'flex', gap: '12px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer' }}>
                 <input
@@ -259,7 +259,7 @@ export const GrepDialog: React.FC<GrepDialogProps> = ({
           {/* フォルダ */}
           {targetScope === 'folder' && (
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              <label style={{ width: '80px' }}>フォルダ(&D):</label>
+              <label style={{ width: '80px' }}>フォルダ(D):</label>
               <input
                 type="text"
                 value={folderPath}
@@ -287,7 +287,7 @@ export const GrepDialog: React.FC<GrepDialogProps> = ({
                 checked={matchCase}
                 onChange={(e) => setMatchCase(e.target.checked)}
               />
-              大文字/小文字を区別する(&C)
+              大文字/小文字を区別する(C)
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
               <input
@@ -295,7 +295,7 @@ export const GrepDialog: React.FC<GrepDialogProps> = ({
                 checked={isRegex}
                 onChange={(e) => setIsRegex(e.target.checked)}
               />
-              正規表現(&E)
+              正規表現(E)
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
               <input
@@ -303,7 +303,7 @@ export const GrepDialog: React.FC<GrepDialogProps> = ({
                 checked={matchWholeWord}
                 onChange={(e) => setMatchWholeWord(e.target.checked)}
               />
-              単語単位で探す(&W)
+              単語単位で探す(W)
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
               <input
@@ -312,7 +312,7 @@ export const GrepDialog: React.FC<GrepDialogProps> = ({
                 onChange={(e) => setSubFolders(e.target.checked)}
                 disabled={targetScope !== 'folder'}
               />
-              サブフォルダからも検索(&S)
+              サブフォルダからも検索(S)
             </label>
           </div>
 
@@ -324,7 +324,7 @@ export const GrepDialog: React.FC<GrepDialogProps> = ({
               disabled={isSearching}
               style={{ fontWeight: 'bold', minWidth: '90px' }}
             >
-              {isSearching ? '処理中...' : isReplaceMode ? '置換実行(&R)' : '検索(&S)'}
+              {isSearching ? '処理中...' : isReplaceMode ? '置換実行(R)' : '検索(S)'}
             </button>
             <button className="sakura-btn" onClick={onClose} style={{ minWidth: '80px' }}>
               キャンセル

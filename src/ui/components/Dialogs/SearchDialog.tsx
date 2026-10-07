@@ -47,7 +47,7 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
 
         <div className="sakura-dialog-body" style={{ padding: '10px' }}>
           <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
-            <label style={{ width: '90px', fontSize: '12px' }}>条件(&N):</label>
+            <label style={{ width: '90px', fontSize: '12px' }}>条件(N):</label>
             <input
               type="text"
               value={query}
@@ -64,7 +64,7 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
 
           {isReplaceMode && (
             <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
-              <label style={{ width: '90px', fontSize: '12px' }}>置換後(&P):</label>
+              <label style={{ width: '90px', fontSize: '12px' }}>置換後(P):</label>
               <input
                 type="text"
                 value={replaceText}
@@ -83,7 +83,7 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
                   checked={matchCase}
                   onChange={(e) => setMatchCase(e.target.checked)}
                 />
-                <span style={{ marginLeft: '4px' }}>大文字/小文字区別(&C)</span>
+                <span style={{ marginLeft: '4px' }}>大文字/小文字区別(C)</span>
               </label>
               <label style={{ display: 'flex', alignItems: 'center' }}>
                 <input
@@ -91,7 +91,7 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
                   checked={matchWholeWord}
                   onChange={(e) => setMatchWholeWord(e.target.checked)}
                 />
-                <span style={{ marginLeft: '4px' }}>単語単位で探す(&W)</span>
+                <span style={{ marginLeft: '4px' }}>単語単位で探す(W)</span>
               </label>
               <label style={{ display: 'flex', alignItems: 'center' }}>
                 <input
@@ -99,7 +99,7 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
                   checked={isRegex}
                   onChange={(e) => setIsRegex(e.target.checked)}
                 />
-                <span style={{ marginLeft: '4px' }}>正規表現(&E)</span>
+                <span style={{ marginLeft: '4px' }}>正規表現(E)</span>
               </label>
             </div>
           </fieldset>
@@ -110,14 +110,14 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
               className="sakura-dialog-btn primary"
               onClick={() => onFindNext(currentOptions)}
             >
-              次を検索(&D)
+              次を検索(D)
             </button>
             <button
               type="button"
               className="sakura-dialog-btn"
               onClick={() => onFindPrevious(currentOptions)}
             >
-              前を検索(&U)
+              前を検索(U)
             </button>
             {onMarkAll && (
               <button
@@ -126,7 +126,7 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
                 onClick={() => onMarkAll(currentOptions)}
                 title="該当行すべてにブックマークを設定"
               >
-                該当行マーク(&M)
+                該当行マーク(M)
               </button>
             )}
             {isReplaceMode && (
@@ -136,14 +136,14 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
                   className="sakura-dialog-btn"
                   onClick={() => onReplace(currentOptions, replaceText)}
                 >
-                  置換(&R)
+                  置換(R)
                 </button>
                 <button
                   type="button"
                   className="sakura-dialog-btn"
                   onClick={() => onReplaceAll(currentOptions, replaceText)}
                 >
-                  全置換(&A)
+                  全置換(A)
                 </button>
               </>
             )}

@@ -73,7 +73,7 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({
             <legend style={{ fontSize: '12px', padding: '0 4px', color: '#1e3a8a' }}>用紙設定</legend>
             <div style={{ display: 'flex', gap: '20px', alignItems: 'center', marginBottom: '8px' }}>
               <label style={{ fontSize: '12px' }}>
-                サイズ(&Z):
+                サイズ(Z):
                 <select
                   value={paperSize}
                   onChange={(e) => setPaperSize(e.target.value)}
@@ -95,7 +95,7 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({
                     checked={orientation === 'portrait'}
                     onChange={() => setOrientation('portrait')}
                   />
-                  縦(&P)
+                  縦(P)
                 </label>
                 <label>
                   <input
@@ -104,7 +104,7 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({
                     checked={orientation === 'landscape'}
                     onChange={() => setOrientation('landscape')}
                   />
-                  横(&L)
+                  横(L)
                 </label>
               </div>
             </div>
@@ -115,7 +115,7 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({
             <legend style={{ fontSize: '12px', padding: '0 4px', color: '#1e3a8a' }}>余白 (mm)</legend>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px' }}>
               <label>
-                上(&T):
+                上(T):
                 <input
                   type="number"
                   value={marginTop}
@@ -124,7 +124,7 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({
                 />
               </label>
               <label>
-                下(&B):
+                下(B):
                 <input
                   type="number"
                   value={marginBottom}
@@ -133,7 +133,7 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({
                 />
               </label>
               <label>
-                左(&M):
+                左(M):
                 <input
                   type="number"
                   value={marginLeft}
@@ -142,7 +142,7 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({
                 />
               </label>
               <label>
-                右(&R):
+                右(R):
                 <input
                   type="number"
                   value={marginRight}
@@ -181,7 +181,7 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({
                   checked={showLineNumbers}
                   onChange={(e) => setShowLineNumbers(e.target.checked)}
                 />
-                行番号を印刷する(&N)
+                行番号を印刷する(N)
               </label>
             </div>
           </fieldset>

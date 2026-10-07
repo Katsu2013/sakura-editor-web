@@ -91,7 +91,7 @@ export const MacroDialog: React.FC<MacroDialogProps> = ({
                 onClose();
               }}
             >
-              実行(&E)
+              実行(E)
             </button>
             <button className="sakura-dialog-btn" onClick={onClose}>
               閉じる

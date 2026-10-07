@@ -246,7 +246,7 @@ export const OutlineDialog: React.FC<OutlineDialogProps> = ({
                   }
                 }}
               >
-                ジャンプ(&J)
+                ジャンプ(J)
               </button>
               <button type="button" className="sakura-dialog-btn" onClick={onClose}>
                 閉じる

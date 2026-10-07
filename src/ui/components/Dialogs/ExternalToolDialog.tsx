@@ -54,7 +54,7 @@ export const ExternalToolDialog: React.FC<ExternalToolDialogProps> = ({
         <form onSubmit={handleRun} className="sakura-dialog-body" style={{ padding: '12px' }}>
           <div style={{ marginBottom: '10px' }}>
             <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>
-              コマンド / 計算式(&C):
+              コマンド / 計算式(C):
             </label>
             <input
               type="text"
@@ -68,7 +68,7 @@ export const ExternalToolDialog: React.FC<ExternalToolDialogProps> = ({
 
           <div style={{ marginBottom: '10px' }}>
             <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>
-              実行結果 / 標準出力(&O):
+              実行結果 / 標準出力(O):
             </label>
             <textarea
               readOnly
@@ -88,7 +88,7 @@ export const ExternalToolDialog: React.FC<ExternalToolDialogProps> = ({
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
             <button type="submit" className="sakura-dialog-btn primary">
-              実行(&X)
+              実行(X)
             </button>
             <button type="button" className="sakura-dialog-btn" onClick={onClose}>
               閉じる

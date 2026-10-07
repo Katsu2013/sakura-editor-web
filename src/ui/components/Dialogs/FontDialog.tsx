@@ -64,7 +64,7 @@ export const FontDialog: React.FC<FontDialogProps> = ({
           <div style={{ display: 'flex', gap: '10px' }}>
             {/* フォント名 */}
             <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{ fontSize: '11px' }}>フォント名(&F):</label>
+              <label style={{ fontSize: '11px' }}>フォント名(F):</label>
               <input
                 type="text"
                 value={selectedFont.name}
@@ -99,7 +99,7 @@ export const FontDialog: React.FC<FontDialogProps> = ({
 
             {/* スタイル */}
             <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{ fontSize: '11px' }}>スタイル(&Y):</label>
+              <label style={{ fontSize: '11px' }}>スタイル(Y):</label>
               <input
                 type="text"
                 value={selectedStyle}
@@ -134,7 +134,7 @@ export const FontDialog: React.FC<FontDialogProps> = ({
 
             {/* サイズ */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{ fontSize: '11px' }}>サイズ(&S):</label>
+              <label style={{ fontSize: '11px' }}>サイズ(S):</label>
               <input
                 type="text"
                 value={selectedSize}
@@ -197,7 +197,7 @@ export const FontDialog: React.FC<FontDialogProps> = ({
 
           {/* 文字セット */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontSize: '11px' }}>文字セット(&R):</label>
+            <label style={{ fontSize: '11px' }}>文字セット(R):</label>
             <select
               style={{ padding: '2px 6px', fontSize: '12px', flexGrow: 1, border: '1px solid #7f9db9' }}
               defaultValue="japanese"

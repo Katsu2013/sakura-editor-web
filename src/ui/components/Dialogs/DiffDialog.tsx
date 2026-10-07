@@ -78,7 +78,7 @@ export const DiffDialog: React.FC<DiffDialogProps> = ({
               ))}
             </select>
             <button className="sakura-dialog-btn primary" onClick={handleRunDiff}>
-              比較実行(&C)
+              比較実行(C)
             </button>
           </div>
 
@@ -155,7 +155,7 @@ export const DiffDialog: React.FC<DiffDialogProps> = ({
                 onClick={handleApplyMarks}
                 style={{ fontWeight: 'bold' }}
               >
-                差分マークをエディタに反映(&A)
+                差分マークをエディタに反映(A)
               </button>
             )}
             <button className="sakura-dialog-btn" onClick={onClose}>

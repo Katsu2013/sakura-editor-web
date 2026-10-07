@@ -37,7 +37,7 @@ export const NumberingDialog: React.FC<NumberingDialogProps> = ({
 
         <div className="sakura-dialog-body">
           <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '8px', marginBottom: '12px' }}>
-            <label>初期値(&S):</label>
+            <label>初期値(S):</label>
             <input
               type="number"
               value={startNum}
@@ -45,7 +45,7 @@ export const NumberingDialog: React.FC<NumberingDialogProps> = ({
               style={{ padding: '2px 4px' }}
             />
 
-            <label>増分(&I):</label>
+            <label>増分(I):</label>
             <input
               type="number"
               value={stepNum}
@@ -53,7 +53,7 @@ export const NumberingDialog: React.FC<NumberingDialogProps> = ({
               style={{ padding: '2px 4px' }}
             />
 
-            <label>個数(&C):</label>
+            <label>個数(C):</label>
             <input
               type="number"
               min={1}
@@ -78,7 +78,7 @@ export const NumberingDialog: React.FC<NumberingDialogProps> = ({
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
             <button className="sakura-dialog-btn primary" onClick={handleApply}>
-              挿入(&O)
+              挿入(O)
             </button>
             <button className="sakura-dialog-btn" onClick={onClose}>
               キャンセル

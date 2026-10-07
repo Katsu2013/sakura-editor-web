@@ -122,7 +122,7 @@ export const KeywordDialog: React.FC<KeywordDialogProps> = ({
         <div className="sakura-dialog-body" style={{ padding: '8px 10px' }}>
           {/* 上部: セット名行 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-            <label>セット名(&N):</label>
+            <label>セット名(N):</label>
             <select
               value={selectedSet}
               onChange={(e) => setSelectedSet(e.target.value)}
@@ -139,13 +139,13 @@ export const KeywordDialog: React.FC<KeywordDialogProps> = ({
               ))}
             </select>
             <button className="sakura-dialog-btn" onClick={() => alert('セット名の変更')}>
-              変更(&H)
+              変更(H)
             </button>
             <button className="sakura-dialog-btn" onClick={() => alert('セットの追加')}>
-              セット追加(&M)...
+              セット追加(M)...
             </button>
             <button className="sakura-dialog-btn" onClick={() => alert('セットの削除')}>
-              セット削除(&R)...
+              セット削除(R)...
             </button>
           </div>
 
@@ -154,7 +154,7 @@ export const KeywordDialog: React.FC<KeywordDialogProps> = ({
             className="win32-groupbox"
             style={{ padding: '6px 8px', marginBottom: '8px' }}
           >
-            <legend>強調キーワード(&K)</legend>
+            <legend>強調キーワード(K)</legend>
 
             {/* 4カラム マルチカラムリストボックス (実機スクショ完全準拠) */}
             <div
@@ -209,21 +209,21 @@ export const KeywordDialog: React.FC<KeywordDialogProps> = ({
                   if (w) alert(`「${w}」を追加しました`);
                 }}
               >
-                追加(&A)...
+                追加(A)...
               </button>
               <button
                 className="sakura-dialog-btn"
                 onClick={() => alert(`「${selectedWord || ''}」を編集`)}
                 disabled={!selectedWord}
               >
-                編集(&E)...
+                編集(E)...
               </button>
               <button
                 className="sakura-dialog-btn"
                 onClick={() => alert(`「${selectedWord || ''}」を削除`)}
                 disabled={!selectedWord}
               >
-                削除(&D)
+                削除(D)
               </button>
 
               <label style={{ display: 'flex', alignItems: 'center', gap: '3px', marginLeft: '6px', fontSize: '11px' }}>
@@ -232,11 +232,11 @@ export const KeywordDialog: React.FC<KeywordDialogProps> = ({
                   checked={matchCase}
                   onChange={(e) => setMatchCase(e.target.checked)}
                 />
-                英大文字小文字区別(&C)
+                英大文字小文字区別(C)
               </label>
 
               <button className="sakura-dialog-btn" style={{ marginLeft: 'auto' }} onClick={() => alert('並び順を整理しました')}>
-                整理(&O)
+                整理(O)
               </button>
             </div>
 
@@ -247,10 +247,10 @@ export const KeywordDialog: React.FC<KeywordDialogProps> = ({
               </span>
               <div style={{ display: 'flex', gap: '4px' }}>
                 <button className="sakura-dialog-btn" onClick={() => alert('キーワードのインポート')}>
-                  インポート(&I)...
+                  インポート(I)...
                 </button>
                 <button className="sakura-dialog-btn" onClick={() => alert('キーワードのエクスポート')}>
-                  エクスポート(&X)...
+                  エクスポート(X)...
                 </button>
               </div>
             </div>
@@ -260,6 +260,7 @@ export const KeywordDialog: React.FC<KeywordDialogProps> = ({
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '8px' }}>
             <button
               className="sakura-dialog-btn primary"
+              style={{ minWidth: '70px', fontWeight: 'bold' }}
               onClick={() => {
                 onApply?.(selectedSet);
                 onClose();
@@ -267,8 +268,15 @@ export const KeywordDialog: React.FC<KeywordDialogProps> = ({
             >
               OK
             </button>
-            <button className="sakura-dialog-btn" onClick={onClose}>
-              キャンセル(&X)
+            <button className="sakura-dialog-btn" style={{ minWidth: '70px' }} onClick={onClose}>
+              キャンセル
+            </button>
+            <button
+              className="sakura-dialog-btn"
+              style={{ minWidth: '70px' }}
+              onClick={() => alert('サクラエディタ ヘルプ: 強調キーワード')}
+            >
+              ヘルプ(H)
             </button>
           </div>
         </div>

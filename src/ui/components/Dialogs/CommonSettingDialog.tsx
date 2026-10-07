@@ -261,7 +261,7 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                         <span style={{ marginLeft: '6px' }}>スムーズスクロールを行う</span>
                       </label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '22px' }}>
-                        <label>ホイールスクロール行数(&L):</label>
+                        <label>ホイールスクロール行数(L):</label>
                         <input
                           type="number"
                           min={1}
@@ -308,7 +308,7 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                   <fieldset className="win32-groupbox">
                     <legend>標準文字コード・改行コード</legend>
                     <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '8px', alignItems: 'center' }}>
-                      <label>デフォルト文字コード(&C):</label>
+                      <label>デフォルト文字コード(C):</label>
                       <select
                         value={data.file.defaultEncoding}
                         onChange={(e) =>
@@ -324,7 +324,7 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                         <option value="EUC-JP">EUC-JP</option>
                       </select>
 
-                      <label>デフォルト改行コード(&L):</label>
+                      <label>デフォルト改行コード(L):</label>
                       <select
                         value={data.file.defaultLineEnding}
                         onChange={(e) =>
@@ -371,7 +371,7 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                               })
                             }
                           />
-                          <span style={{ marginLeft: '6px' }}>自動保存を行う(&A):</span>
+                          <span style={{ marginLeft: '6px' }}>自動保存を行う(A):</span>
                         </label>
                         <input
                           type="number"
@@ -414,11 +414,11 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                             })
                           }
                         />
-                        <span style={{ marginLeft: '6px' }}>保存時にバックアップファイルを作成する(&B)</span>
+                        <span style={{ marginLeft: '6px' }}>保存時にバックアップファイルを作成する(B)</span>
                       </label>
 
                       <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '8px', marginLeft: '22px' }}>
-                        <label>拡張子(&E):</label>
+                        <label>拡張子(E):</label>
                         <input
                           type="text"
                           value={data.backup.backupExtension}
@@ -458,7 +458,7 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                   <fieldset className="win32-groupbox">
                     <legend>日時フォーマット</legend>
                     <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '8px', alignItems: 'center' }}>
-                      <label>日時の書式(&D):</label>
+                      <label>日時の書式(D):</label>
                       <input
                         type="text"
                         value={data.format.dateTimeFormat}
@@ -479,7 +479,7 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                   <fieldset className="win32-groupbox">
                     <legend>引用符</legend>
                     <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '8px', alignItems: 'center' }}>
-                      <label>引用符(&Q):</label>
+                      <label>引用符(Q):</label>
                       <input
                         type="text"
                         value={data.format.quoteString}
@@ -513,7 +513,7 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                             })
                           }
                         />
-                        <span style={{ marginLeft: '6px' }}>ツールバーを表示する(&T)</span>
+                        <span style={{ marginLeft: '6px' }}>ツールバーを表示する(T)</span>
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', marginLeft: '20px' }}>
                         <input
@@ -565,7 +565,7 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                             })
                           }
                         />
-                        <span style={{ marginLeft: '6px' }}>タブバーを表示する(&T)</span>
+                        <span style={{ marginLeft: '6px' }}>タブバーを表示する(T)</span>
                       </label>
 
                       <div style={{ display: 'flex', gap: '16px', marginLeft: '20px' }}>
@@ -652,7 +652,7 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                             })
                           }
                         />
-                        <span style={{ marginLeft: '6px' }}>ステータスバーを表示する(&S)</span>
+                        <span style={{ marginLeft: '6px' }}>ステータスバーを表示する(S)</span>
                       </label>
 
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginLeft: '20px' }}>
@@ -791,7 +791,7 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                       <fieldset className="win32-groupbox">
                         <legend>マクロ番号 [{selectedMacroIdx}] の設定</legend>
                         <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '6px', alignItems: 'center' }}>
-                          <label>表示名(&N):</label>
+                          <label>表示名(N):</label>
                           <input
                             type="text"
                             value={currentMacro.name || ''}
@@ -800,7 +800,7 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                             style={{ padding: '2px 4px', border: '1px solid #7f9db9' }}
                           />
 
-                          <label>ファイル(&F):</label>
+                          <label>ファイル(F):</label>
                           <input
                             type="text"
                             value={currentMacro.path || ''}
@@ -829,7 +829,7 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                 <div>
                   {/* 分類 & 絞り込みフィルター */}
                   <div style={{ display: 'flex', gap: '8px', marginBottom: '6px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '11px' }}>分類(&C):</span>
+                    <span style={{ fontSize: '11px' }}>分類(C):</span>
                     <select
                       value={keyCategory}
                       onChange={(e) => setKeyCategory(e.target.value)}
@@ -927,13 +927,13 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
 
                           <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
                             <button className="sakura-dialog-btn primary" onClick={handleAssignKey}>
-                              割り当て(&A)
+                              割り当て(A)
                             </button>
                             <button className="sakura-dialog-btn" onClick={handleRemoveKey}>
-                              解除(&D)
+                              解除(D)
                             </button>
                             <button className="sakura-dialog-btn" onClick={handleResetKeys}>
-                              初期化(&R)
+                              初期化(R)
                             </button>
                           </div>
                         </div>
@@ -960,10 +960,10 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
               キャンセル
             </button>
             <button className="sakura-dialog-btn" onClick={() => onSave(data)}>
-              適用(&A)
+              適用(A)
             </button>
             <button className="sakura-dialog-btn" onClick={() => setIsHelpOpen((prev) => !prev)}>
-              ヘルプ(&H)
+              ヘルプ(H)
             </button>
           </div>
 

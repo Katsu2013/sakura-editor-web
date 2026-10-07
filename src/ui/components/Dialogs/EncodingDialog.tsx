@@ -32,7 +32,7 @@ export const EncodingDialog: React.FC<EncodingDialogProps> = ({
         <div className="sakura-dialog-body">
           <div style={{ marginBottom: '12px' }}>
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
-              文字コード(&C):
+              文字コード(C):
             </label>
             <select
               value={selectedEncoding}
@@ -51,7 +51,7 @@ export const EncodingDialog: React.FC<EncodingDialogProps> = ({
 
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
-              改行コード(&L):
+              改行コード(L):
             </label>
             <select
               value={selectedLineEnding}
