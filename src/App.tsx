@@ -37,7 +37,8 @@ import type { GrepExecuteParams, GrepResultItem } from './ui/components/Dialogs/
 import { FileTreePanel } from './ui/components/FileTreePanel';
 import { TitleBar } from './ui/components/TitleBar';
 import { FunctionKeyBar } from './ui/components/FunctionKeyBar';
-import { DEFAULT_COMMON_SETTINGS, type CommonSettingsModel } from './core/config/CommonSettingsModel';
+import { DEFAULT_COMMON_SETTINGS, type CommonSettingsModel, type MacroRegistration } from './core/config/CommonSettingsModel';
+import { PlatformService } from './core/platform/PlatformService';
 import type { InputBridge } from './input/InputBridge';
 import {
   NewIcon,
@@ -1041,7 +1042,16 @@ export const App: React.FC = () => {
   const handleSaveAll = () => {
     tabs.forEach((tab) => {
       if (tab.isModified) {
-        const text = tab.buffer.getText();
+        const text = tab.buffer.getText(tab.lineEnding);
+        if (commonSettings.backup.createBackup) {
+          PlatformService.saveBackup(
+            tab.title,
+            text,
+            commonSettings.backup.backupType,
+            commonSettings.backup.backupExtension,
+            commonSettings.backup.backupFolder
+          );
+        }
         const blob = new Blob([text], { type: 'text/plain' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -1250,6 +1260,15 @@ export const App: React.FC = () => {
           a.href = url;
           a.download = currentDoc.title;
           a.click();
+          if (commonSettings.backup.createBackup) {
+            PlatformService.saveBackup(
+              currentDoc.title,
+              text,
+              commonSettings.backup.backupType,
+              commonSettings.backup.backupExtension,
+              commonSettings.backup.backupFolder
+            );
+          }
           URL.revokeObjectURL(url);
           updateCurrentDoc((d) => ({ ...d, isModified: false }));
           addRecentFile(currentDoc.title);
@@ -1263,10 +1282,13 @@ export const App: React.FC = () => {
         await writable.close();
         const file = await handle.getFile();
         if (commonSettings.backup.createBackup) {
-          try {
-            const ext = commonSettings.backup.backupExtension || '.bak';
-            localStorage.setItem(`sakura_backup_${file.name}${ext}_${Date.now()}`, text);
-          } catch {}
+          PlatformService.saveBackup(
+            file.name,
+            text,
+            commonSettings.backup.backupType,
+            commonSettings.backup.backupExtension,
+            commonSettings.backup.backupFolder
+          );
         }
         updateCurrentDoc((d) => ({
           ...d,
@@ -1672,6 +1694,34 @@ export const App: React.FC = () => {
     }
   }, [lastMacroScript, pushUndoState, currentDoc, updateCurrentDoc]);
 
+  // 登録済みマクロの実行 (Webストレージ/ファイル連携)
+  const executeRegisteredMacro = useCallback(async (macro: MacroRegistration) => {
+    let script = PlatformService.getMacroCode(macro.id);
+    if (!script && macro.path) {
+      if (macro.path.includes('\n') || macro.path.includes('Editor.')) {
+        script = macro.path;
+      }
+    }
+    if (!script) {
+      alert(`マクロ「${macro.name || macro.id}」のスクリプトが読み込まれていません。「設定」-「共通設定」-「マクロ」タブの「参照...」ボタンからスクリプトを取り込んでください。`);
+      return;
+    }
+    try {
+      pushUndoState();
+      await MacroEngine.executeMacro(script, {
+        buffer: currentDoc.buffer,
+        cursor: currentDoc.cursor,
+        selection: currentDoc.selection,
+        bookmarkManager: currentDoc.bookmarkManager,
+        setCursor: (pos) => updateCurrentDoc((d) => ({ ...d, cursor: pos })),
+        setSelection: (sel) => updateCurrentDoc((d) => ({ ...d, selection: sel })),
+        triggerChange: () => updateCurrentDoc((d) => ({ ...d, isModified: true })),
+      });
+    } catch (err: any) {
+      alert(`マクロ実行エラー: ${err.message}`);
+    }
+  }, [pushUndoState, currentDoc, updateCurrentDoc]);
+
   // sakura.ini エクスポート
   const handleExportIni = useCallback(() => {
     const iniContent = SakuraIni.exportToIni(activeTypeSetting);
@@ -1928,15 +1978,7 @@ export const App: React.FC = () => {
             if (macro.path === '(RecKeyMacro)') handleExecuteCommandRef.current('macro-rec');
             else if (macro.path === '(ExecKeyMacro)') handleExecuteCommandRef.current('macro-play');
             else {
-              MacroEngine.executeMacro(macro.path, {
-                buffer: currentDoc.buffer,
-                cursor: currentDoc.cursor,
-                selection: currentDoc.selection,
-                bookmarkManager: currentDoc.bookmarkManager,
-                setCursor: (pos) => updateCurrentDoc((d) => ({ ...d, cursor: pos })),
-                setSelection: (sel) => updateCurrentDoc((d) => ({ ...d, selection: sel })),
-                triggerChange: () => updateCurrentDoc((d) => ({ ...d, isModified: true })),
-              }).catch((err) => alert(`マクロエラー: ${err.message}`));
+              executeRegisteredMacro(macro);
             }
             return;
           }
@@ -2382,9 +2424,7 @@ export const App: React.FC = () => {
               ? commonSettings.macros.map((m) => ({
                   id: `macro-run-${m.id}`,
                   label: `${m.id}: ${m.name || '(名称未設定)'}${m.shortcut ? `\t${m.shortcut}` : ''}`,
-                  action: () => {
-                    alert(`マクロ「${m.name}」を実行しました。`);
-                  },
+                  action: () => executeRegisteredMacro(m),
                 }))
               : [{ id: 'no-macro', label: '(登録マクロなし)', disabled: true }],
         },

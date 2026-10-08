@@ -9,6 +9,7 @@ import {
   DEFAULT_TOOLBAR_ITEMS,
 } from '../../../core/config/CommonSettingsModel';
 import { ALL_COMMANDS } from './CommandListDialog';
+import { PlatformService, type BackupItem } from '../../../core/platform/PlatformService';
 import {
   NewIcon,
   NewWinIcon,
@@ -355,6 +356,17 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
   const [custMenuCategory, setCustMenuCategory] = useState<string>('編集');
   const [custMenuLeftCmd, setCustMenuLeftCmd] = useState<string>('undo');
 
+  // バックアップ一覧・復元モーダル
+  const [isBackupListModalOpen, setIsBackupListModalOpen] = useState(false);
+  const [backupList, setBackupList] = useState<BackupItem[]>([]);
+  const [selectedBackupKey, setSelectedBackupKey] = useState<string>('');
+  const [backupPreviewText, setBackupPreviewText] = useState<string>('');
+
+  // マクロスクリプト確認モーダル
+  const [isMacroCodeModalOpen, setIsMacroCodeModalOpen] = useState(false);
+  const [macroCodePreviewTitle, setMacroCodePreviewTitle] = useState<string>('');
+  const [macroCodePreviewText, setMacroCodePreviewText] = useState<string>('');
+
   // ファイルインポート用 hidden ref
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -406,6 +418,132 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
     if (window.confirm('最近使ったフォルダーの履歴をクリアしますか？')) {
       localStorage.removeItem('sakura_recent_folders');
       alert('フォルダーの履歴をクリアしました。');
+    }
+  };
+
+  // Web File API / PlatformService 連携ハンドラ
+  const handlePickMacroFile = async () => {
+    const res = await PlatformService.pickFile({
+      accept: '.mac,.js,.vbs,.txt',
+      title: 'マクロファイルの選択',
+    });
+    if (res) {
+      const currentMacro = data.macros[selectedMacroIdx] || { id: selectedMacroIdx, name: '', path: '' };
+      const nextName = currentMacro.name || res.name.replace(/\.[^.]+$/, '');
+      const nextMacros = [...data.macros];
+      nextMacros[selectedMacroIdx] = {
+        ...currentMacro,
+        name: nextName,
+        path: res.path,
+      };
+      setData({ ...data, macros: nextMacros });
+      PlatformService.registerMacroCode(selectedMacroIdx, nextName, res.content, res.path);
+      alert(`マクロ「${res.name}」を取り込みました（${res.size} bytes）。`);
+    }
+  };
+
+  const handleViewMacroCode = () => {
+    const code = PlatformService.getMacroCode(selectedMacroIdx);
+    const currentMacro = data.macros[selectedMacroIdx];
+    if (!code) {
+      alert('登録されたマクロスクリプトがありません。「参照...」からファイルを取り込んでください。');
+      return;
+    }
+    setMacroCodePreviewTitle(currentMacro?.name || `マクロ [${selectedMacroIdx}]`);
+    setMacroCodePreviewText(code);
+    setIsMacroCodeModalOpen(true);
+  };
+
+  const handlePickHelperWordFile = async () => {
+    const res = await PlatformService.pickFile({
+      accept: '.txt,.dict',
+      title: '単語ファイルの選択',
+    });
+    if (res) {
+      setData({ ...data, helper: { ...data.helper, compWordFile: res.path } });
+      const words = res.content.split(/\s+/).filter(Boolean);
+      PlatformService.saveDictWords('words', words);
+      alert(`単語ファイル「${res.name}」（${words.length}語）を取り込みました。`);
+    }
+  };
+
+  const handlePickHelperDictFile = async () => {
+    const res = await PlatformService.pickFile({
+      accept: '.txt,.dict',
+      title: '辞書ファイルの選択',
+    });
+    if (res) {
+      setData({ ...data, helper: { ...data.helper, keywordHelpDictPath: res.path } });
+      const lines = res.content.split(/\r?\n/).filter(Boolean);
+      PlatformService.saveDictWords('keyword_help', lines);
+      alert(`キーワード辞書ファイル「${res.name}」（${lines.length}行）を取り込みました。`);
+    }
+  };
+
+  const handlePickBackupFolder = async () => {
+    const folder = await PlatformService.pickFolder({ title: 'バックアップ先フォルダー' });
+    if (folder) {
+      setData({ ...data, backup: { ...data.backup, backupFolder: folder } });
+    }
+  };
+
+  const handleOpenBackupList = () => {
+    const list = PlatformService.listBackups();
+    setBackupList(list);
+    if (list.length > 0) {
+      setSelectedBackupKey(list[0].key);
+      setBackupPreviewText(PlatformService.getBackupContent(list[0].key) || '');
+    } else {
+      setSelectedBackupKey('');
+      setBackupPreviewText('');
+    }
+    setIsBackupListModalOpen(true);
+  };
+
+  const handleDeleteBackup = (key: string) => {
+    if (window.confirm('このバックアップを削除しますか？')) {
+      PlatformService.deleteBackup(key);
+      const list = PlatformService.listBackups();
+      setBackupList(list);
+      if (list.length > 0) {
+        setSelectedBackupKey(list[0].key);
+        setBackupPreviewText(PlatformService.getBackupContent(list[0].key) || '');
+      } else {
+        setSelectedBackupKey('');
+        setBackupPreviewText('');
+      }
+    }
+  };
+
+  const handleDownloadBackup = (item: BackupItem) => {
+    const content = PlatformService.getBackupContent(item.key) || '';
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = item.filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePickPluginFile = async () => {
+    const res = await PlatformService.pickFile({
+      accept: '.js,.json',
+      title: 'プラグインファイルの選択',
+    });
+    if (res) {
+      const newPlug = {
+        id: `plug-${Date.now()}`,
+        name: res.name.replace(/\.[^.]+$/, ''),
+        version: '1.0.0',
+        description: 'ユーザー追加プラグイン (Web内蔵)',
+        enabled: true,
+      };
+      setData({
+        ...data,
+        plugin: { ...data.plugin, plugins: [...data.plugin.plugins, newPlug] },
+      });
+      alert(`プラグイン「${res.name}」を正常に登録しました。`);
     }
   };
 
@@ -2224,6 +2362,33 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                   <fieldset className="win32-groupbox">
                     <legend>バックアップ先 & 世代管理</legend>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ whiteSpace: 'nowrap' }}>バックアップ先:</span>
+                        <input
+                          type="text"
+                          value={data.backup.backupFolder || ''}
+                          placeholder="(ブラウザ内ストレージ: localStorage)"
+                          onChange={(e) =>
+                            setData({ ...data, backup: { ...data.backup, backupFolder: e.target.value } })
+                          }
+                          style={{ flex: 1, minWidth: 0, padding: '2px 4px', border: '1px solid #7f9db9', fontSize: '11px' }}
+                        />
+                        <button type="button" className="sakura-dialog-btn" onClick={handlePickBackupFolder}>
+                          参照...
+                        </button>
+                        <button
+                          type="button"
+                          className="sakura-dialog-btn primary"
+                          onClick={handleOpenBackupList}
+                        >
+                          バックアップ一覧・復元(V)...
+                        </button>
+                      </div>
+
+                      <div style={{ fontSize: '10px', color: '#666' }}>
+                        ※ブラウザ版: バックアップはブラウザ内ストレージに自動退避されます。「バックアップ一覧・復元」から確認・ダウンロードが可能です。
+                      </div>
+
                       <label style={{ display: 'flex', alignItems: 'center' }}>
                         <input
                           type="checkbox"
@@ -2990,6 +3155,34 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                           <span style={{ marginLeft: '4px' }}>強調キーワード(K)</span>
                         </label>
                       </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr 60px', gap: '6px', alignItems: 'center', marginLeft: '20px' }}>
+                        <span>単語ファイル(W):</span>
+                        <input
+                          type="text"
+                          value={data.helper.compWordFile || ''}
+                          placeholder="単語辞書ファイルを選択..."
+                          disabled={!data.helper.useCompletion}
+                          onChange={(e) =>
+                            setData({
+                              ...data,
+                              helper: { ...data.helper, compWordFile: e.target.value },
+                            })
+                          }
+                          style={{ padding: '2px 4px', border: '1px solid #7f9db9', fontSize: '11px' }}
+                        />
+                        <button
+                          type="button"
+                          className="sakura-dialog-btn"
+                          disabled={!data.helper.useCompletion}
+                          onClick={handlePickHelperWordFile}
+                        >
+                          参照...
+                        </button>
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#666', marginLeft: '20px' }}>
+                        ※ブラウザ版: ファイルを取り込むと、ブラウザ内辞書メモリに保存され入力補完リストに反映されます。
+                      </div>
                     </div>
                   </fieldset>
 
@@ -3012,18 +3205,27 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                         <input
                           type="text"
                           value={data.helper.keywordHelpDictPath}
-                          placeholder="例: Dict\sakura_help.txt"
+                          placeholder="辞書ファイル (.txt, .dict)..."
+                          disabled={!data.helper.useKeywordHelp}
                           onChange={(e) =>
                             setData({
                               ...data,
                               helper: { ...data.helper, keywordHelpDictPath: e.target.value },
                             })
                           }
-                          style={{ padding: '2px 4px', border: '1px solid #7f9db9' }}
+                          style={{ padding: '2px 4px', border: '1px solid #7f9db9', fontSize: '11px' }}
                         />
-                        <button type="button" className="sakura-dialog-btn">
+                        <button
+                          type="button"
+                          className="sakura-dialog-btn"
+                          disabled={!data.helper.useKeywordHelp}
+                          onClick={handlePickHelperDictFile}
+                        >
                           参照...
                         </button>
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#666', marginLeft: '20px' }}>
+                        ※ブラウザ版: 辞書ファイルを選択すると、ブラウザ内ストレージに取り込まれキーワードヘルプが動作します。
                       </div>
                     </div>
                   </fieldset>
@@ -3093,13 +3295,29 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                               />
 
                               <span>ファイル(F):</span>
-                              <input
-                                type="text"
-                                value={currentMacro.path || ''}
-                                onChange={(e) => updateMacro({ path: e.target.value })}
-                                placeholder="例: C:\sakura\macros\sample.mac"
-                                style={{ padding: '2px 4px', border: '1px solid #7f9db9' }}
-                              />
+                              <div style={{ display: 'flex', gap: '4px' }}>
+                                <input
+                                  type="text"
+                                  value={currentMacro.path || ''}
+                                  onChange={(e) => updateMacro({ path: e.target.value })}
+                                  placeholder="マクロファイル (.mac, .js)..."
+                                  style={{ flex: 1, minWidth: 0, padding: '2px 4px', border: '1px solid #7f9db9' }}
+                                />
+                                <button
+                                  type="button"
+                                  className="sakura-dialog-btn"
+                                  onClick={handlePickMacroFile}
+                                >
+                                  参照...
+                                </button>
+                                <button
+                                  type="button"
+                                  className="sakura-dialog-btn"
+                                  onClick={handleViewMacroCode}
+                                >
+                                  コード確認
+                                </button>
+                              </div>
 
                               <span>ショートカット:</span>
                               <input
@@ -3113,6 +3331,9 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                           );
                         })()}
                       </fieldset>
+                      <div style={{ fontSize: '10px', color: '#666' }}>
+                        ※ブラウザ版: 「参照...」から選択したマクロコードはブラウザ内に自動保管され、メニューやショートカットから即時実行できます。「コード確認」で中身をプレビュー可能です。
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3126,18 +3347,28 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                     <input
                       type="text"
                       value={data.plugin.pluginFolder}
+                      placeholder="(ブラウザ内プラグインストレージ)"
                       onChange={(e) =>
                         setData({ ...data, plugin: { ...data.plugin, pluginFolder: e.target.value } })
                       }
-                      style={{ padding: '2px 4px', border: '1px solid #7f9db9' }}
+                      style={{ padding: '2px 4px', border: '1px solid #7f9db9', fontSize: '11px' }}
                     />
-                    <button type="button" className="sakura-dialog-btn">
+                    <button type="button" className="sakura-dialog-btn" onClick={handlePickBackupFolder}>
                       参照...
                     </button>
                   </div>
 
                   <fieldset className="win32-groupbox">
-                    <legend>インストール済みプラグイン一覧</legend>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <legend style={{ marginBottom: 0 }}>インストール済みプラグイン一覧</legend>
+                      <button
+                        type="button"
+                        className="sakura-dialog-btn primary"
+                        onClick={handlePickPluginFile}
+                      >
+                        プラグイン追加(A)...
+                      </button>
+                    </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       {data.plugin.plugins.map((plug, pIdx) => (
                         <div
@@ -3168,6 +3399,9 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
                           <span style={{ fontSize: '11px', color: '#666' }}>{plug.description}</span>
                         </div>
                       ))}
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#666', marginTop: '6px' }}>
+                      ※ブラウザ版: プラグインファイル (.js) を読み込んでエディタに追加拡張できます。
                     </div>
                   </fieldset>
                 </div>
@@ -3750,6 +3984,218 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
           </div>
         )}
 
+        {/* ==================== サブダイアログ: バックアップ一覧・復元 (IDD_BACKUPLIST) ==================== */}
+        {isBackupListModalOpen && (
+          <div
+            className="sakura-dialog-overlay"
+            style={{ zIndex: 650 }}
+            onClick={() => setIsBackupListModalOpen(false)}
+          >
+            <div
+              className="sakura-dialog-window"
+              style={{ width: '560px' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="sakura-dialog-titlebar">
+                <span>バックアップ一覧・復元</span>
+                <span
+                  style={{ cursor: 'pointer', padding: '0 4px' }}
+                  onClick={() => setIsBackupListModalOpen(false)}
+                >
+                  ✕
+                </span>
+              </div>
+              <div className="sakura-dialog-body" style={{ padding: '8px' }}>
+                <div style={{ fontSize: '11px', marginBottom: '4px' }}>
+                  ブラウザ内ストレージに保存されているバックアップファイル一覧:
+                </div>
+
+                <div
+                  style={{
+                    height: '140px',
+                    border: '2px inset #ffffff',
+                    background: '#ffffff',
+                    overflowY: 'auto',
+                    fontSize: '11px',
+                  }}
+                >
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                    <thead style={{ background: '#ece9d8', position: 'sticky', top: 0 }}>
+                      <tr style={{ textAlign: 'left', borderBottom: '1px solid #7f9db9' }}>
+                        <th style={{ padding: '2px 4px' }}>ファイル名</th>
+                        <th style={{ padding: '2px 4px', width: '130px' }}>作成日時</th>
+                        <th style={{ padding: '2px 4px', width: '70px', textAlign: 'right' }}>サイズ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {backupList.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} style={{ padding: '12px', textAlign: 'center', color: '#666' }}>
+                            保存されたバックアップはありません。
+                          </td>
+                        </tr>
+                      ) : (
+                        backupList.map((item) => {
+                          const isSel = item.key === selectedBackupKey;
+                          return (
+                            <tr
+                              key={item.key}
+                              style={{
+                                background: isSel ? '#0a246a' : 'transparent',
+                                color: isSel ? '#ffffff' : '#000000',
+                                cursor: 'pointer',
+                              }}
+                              onClick={() => {
+                                setSelectedBackupKey(item.key);
+                                setBackupPreviewText(PlatformService.getBackupContent(item.key) || '');
+                              }}
+                            >
+                              <td style={{ padding: '2px 4px' }}>{item.filename}</td>
+                              <td style={{ padding: '2px 4px' }}>{item.formattedDate}</td>
+                              <td style={{ padding: '2px 4px', textAlign: 'right' }}>{item.size} B</td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={{ marginTop: '6px' }}>
+                  <div style={{ fontSize: '11px', marginBottom: '2px' }}>バックアップ内容プレビュー:</div>
+                  <textarea
+                    readOnly
+                    value={backupPreviewText}
+                    style={{
+                      width: '100%',
+                      height: '100px',
+                      fontFamily: 'Consolas, monospace',
+                      fontSize: '11px',
+                      padding: '4px',
+                      border: '1px solid #7f9db9',
+                      background: '#f9f9f9',
+                      resize: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                    placeholder="(選択したバックアップの内容がここに表示されます)"
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      type="button"
+                      className="sakura-dialog-btn"
+                      disabled={!selectedBackupKey}
+                      onClick={() => {
+                        const target = backupList.find((b) => b.key === selectedBackupKey);
+                        if (target) handleDownloadBackup(target);
+                      }}
+                    >
+                      ダウンロード(D)...
+                    </button>
+                    <button
+                      type="button"
+                      className="sakura-dialog-btn"
+                      disabled={!selectedBackupKey}
+                      onClick={() => {
+                        if (selectedBackupKey) handleDeleteBackup(selectedBackupKey);
+                      }}
+                    >
+                      削除(X)
+                    </button>
+                    <button
+                      type="button"
+                      className="sakura-dialog-btn"
+                      disabled={backupList.length === 0}
+                      onClick={() => {
+                        if (window.confirm('すべてのバックアップを消去しますか？')) {
+                          PlatformService.clearAllBackups();
+                          setBackupList([]);
+                          setSelectedBackupKey('');
+                          setBackupPreviewText('');
+                        }
+                      }}
+                    >
+                      すべて削除
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="sakura-dialog-btn primary"
+                    onClick={() => setIsBackupListModalOpen(false)}
+                  >
+                    閉じる(C)
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ==================== サブダイアログ: マクロコード確認 (IDD_MACROVIEW) ==================== */}
+        {isMacroCodeModalOpen && (
+          <div
+            className="sakura-dialog-overlay"
+            style={{ zIndex: 650 }}
+            onClick={() => setIsMacroCodeModalOpen(false)}
+          >
+            <div
+              className="sakura-dialog-window"
+              style={{ width: '520px' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="sakura-dialog-titlebar">
+                <span>マクロスクリプト確認 - {macroCodePreviewTitle}</span>
+                <span
+                  style={{ cursor: 'pointer', padding: '0 4px' }}
+                  onClick={() => setIsMacroCodeModalOpen(false)}
+                >
+                  ✕
+                </span>
+              </div>
+              <div className="sakura-dialog-body" style={{ padding: '8px' }}>
+                <div style={{ fontSize: '11px', marginBottom: '4px' }}>登録コード内容:</div>
+                <textarea
+                  readOnly
+                  value={macroCodePreviewText}
+                  style={{
+                    width: '100%',
+                    height: '240px',
+                    fontFamily: 'Consolas, monospace',
+                    fontSize: '11px',
+                    padding: '4px',
+                    border: '1px solid #7f9db9',
+                    background: '#ffffff',
+                    resize: 'none',
+                    boxSizing: 'border-box',
+                    whiteSpace: 'pre',
+                  }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                  <button
+                    type="button"
+                    className="sakura-dialog-btn"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(macroCodePreviewText);
+                      alert('クリップボードにコピーしました。');
+                    }}
+                  >
+                    クリップボードにコピー(C)
+                  </button>
+                  <button
+                    type="button"
+                    className="sakura-dialog-btn primary"
+                    onClick={() => setIsMacroCodeModalOpen(false)}
+                  >
+                    閉じる
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

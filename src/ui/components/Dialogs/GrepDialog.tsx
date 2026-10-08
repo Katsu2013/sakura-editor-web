@@ -41,7 +41,7 @@ export const GrepDialog: React.FC<GrepDialogProps> = ({
   const [replaceText, setReplaceText] = useState('');
   const [filePattern, setFilePattern] = useState('*.*');
   const [targetScope, setTargetScope] = useState<'all-tabs' | 'current-tab' | 'folder'>('all-tabs');
-  const [folderPath, setFolderPath] = useState('C:\\Work\\WebApp01');
+  const [folderPath, setFolderPath] = useState('(フォルダ選択ダイアログで指定)');
   const [isRegex, setIsRegex] = useState(false);
   const [matchCase, setMatchCase] = useState(false);
   const [matchWholeWord, setMatchWholeWord] = useState(false);
@@ -258,14 +258,31 @@ export const GrepDialog: React.FC<GrepDialogProps> = ({
 
           {/* フォルダ */}
           {targetScope === 'folder' && (
-            <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <label style={{ width: '80px' }}>フォルダ(D):</label>
               <input
                 type="text"
                 value={folderPath}
                 onChange={(e) => setFolderPath(e.target.value)}
+                placeholder="フォルダを選択してください"
                 style={{ flex: 1, padding: '3px 6px', border: '1px solid #7f9db9', backgroundColor: '#ffffff' }}
               />
+              <button
+                type="button"
+                className="sakura-dialog-btn"
+                onClick={async () => {
+                  if ('showDirectoryPicker' in window) {
+                    try {
+                      const dirHandle = await (window as any).showDirectoryPicker();
+                      setFolderPath(dirHandle.name);
+                    } catch {}
+                  } else {
+                    alert('お使いのブラウザではフォルダ選択APIがサポートされていません。');
+                  }
+                }}
+              >
+                参照...
+              </button>
             </div>
           )}
 

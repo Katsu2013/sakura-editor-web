@@ -53,15 +53,15 @@ export const TypeSettingDialog: React.FC<TypeSettingDialogProps> = ({
   // キーワードヘルプタブの状態 (media_1791380232055.png準拠)
   const [useKeywordHelp, setUseKeywordHelp] = useState(false);
   const [dictList, setDictList] = useState<{ id: string; name: string; desc: string; path: string }[]>([
-    { id: '1', name: '辞書ファイル1', desc: '辞書ファイルの1行目の文字列', path: 'C:\\Sakura\\dict\\js.dict' },
+    { id: '1', name: '辞書ファイル1', desc: 'JavaScript キーワード解説辞書', path: '(内蔵辞書) js.dict' },
   ]);
   const [selectedDictId, setSelectedDictId] = useState<string>('1');
   const [dictHitNext, setDictHitNext] = useState(false);
   const [dictShowKeyword, setDictShowKeyword] = useState(false);
   const [dictPrefixMatch, setDictPrefixMatch] = useState(false);
   const [dictContextMenuPos, setDictContextMenuPos] = useState('先頭に表示');
-  const [dictInputDesc, setDictInputDesc] = useState('辞書ファイルの1行目の文字列');
-  const [dictInputPath, setDictInputPath] = useState('C:\\Sakura\\dict\\js.dict');
+  const [dictInputDesc, setDictInputDesc] = useState('JavaScript キーワード解説辞書');
+  const [dictInputPath, setDictInputPath] = useState('(内蔵辞書) js.dict');
   const [isConfigFolderOpen, setIsConfigFolderOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
@@ -146,26 +146,26 @@ export const TypeSettingDialog: React.FC<TypeSettingDialogProps> = ({
 
   const handleSupportWordTypeChange = (val: string) => {
     setSupportWordType(val);
-    if (val === 'C/C++') setSupportWordFile('C:\\Sakura\\dict\\cpp.dict');
-    else if (val === 'HTML') setSupportWordFile('C:\\Sakura\\dict\\html.dict');
-    else if (val === 'Java') setSupportWordFile('C:\\Sakura\\dict\\java.dict');
-    else if (val === 'JavaScript') setSupportWordFile('C:\\Sakura\\dict\\javascript.dict');
+    if (val === 'C/C++') setSupportWordFile('cpp.dict (内蔵)');
+    else if (val === 'HTML') setSupportWordFile('html.dict (内蔵)');
+    else if (val === 'Java') setSupportWordFile('java.dict (内蔵)');
+    else if (val === 'JavaScript') setSupportWordFile('javascript.dict (内蔵)');
     else if (val === 'なし') setSupportWordFile('');
   };
 
   const handleWordFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setSupportWordFile(`C:\\Sakura\\dict\\${file.name}`);
+    if (file) setSupportWordFile(`(選択済み) ${file.name}`);
   };
 
   const handleExtHelpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setSupportExtHelp(`C:\\Sakura\\help\\${file.name}`);
+    if (file) setSupportExtHelp(`(選択済み) ${file.name}`);
   };
 
   const handleExtHtmlHelpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setSupportExtHtmlHelp(`C:\\Sakura\\help\\${file.name}`);
+    if (file) setSupportExtHtmlHelp(`(選択済み) ${file.name}`);
   };
 
   // 正規表現エクスポート
@@ -234,7 +234,7 @@ export const TypeSettingDialog: React.FC<TypeSettingDialogProps> = ({
           id: `dict-${Date.now()}-${i}`,
           name: parts[0] || `辞書${i + 1}`,
           desc: parts[1] || '辞書の説明',
-          path: parts[2] || 'C:\\Sakura\\dict\\custom.dict',
+          path: parts[2] || '(カスタム辞書)',
         };
       });
       if (imported.length > 0) {
@@ -318,7 +318,7 @@ export const TypeSettingDialog: React.FC<TypeSettingDialogProps> = ({
   const handleOutlineFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setOutlineRuleFile(`C:\\Sakura\\rules\\${file.name}`);
+      setOutlineRuleFile(`(選択済み) ${file.name}`);
     }
   };
 
@@ -1721,7 +1721,7 @@ export const TypeSettingDialog: React.FC<TypeSettingDialogProps> = ({
                                 id: `dict-${Date.now()}`,
                                 name: '新規辞書',
                                 desc: '辞書ファイルの説明',
-                                path: dictInputPath || 'C:\\Sakura\\dict\\new.dict',
+                                path: dictInputPath || '(新規辞書)',
                               };
                               setDictList([...dictList, newItem]);
                               setSelectedDictId(newItem.id);

@@ -21,17 +21,40 @@
 ### 1.3 Web環境とネイティブWin32の境界設計
 サクラエディタ（Win32 native C++）の全機能をWeb SPA上で実現するにあたり、Webブラウザのセキュリティサンドボックス制約とWeb標準技術との対応関係を以下のように定義・実装します。
 
-| 機能項目 | Win32 実機仕様 (Ver 2.4.3.7173) | Web SPA クローン実装仕様 |
+| 機能項目 | Win32 実機仕様 (Ver 2.4.3.7173) | Web SPA クローン実装仕様 (PlatformService 連携) |
 | :--- | :--- | :--- |
 | **画面描画** | Windows GDI (CreateFont, TextOut, BitBlt) | HTML5 Canvas 2D + 仮想スクロール最適化 |
 | **テキスト入力 & IME** | Win32 IMEメッセージ (WM_IME_CHAR, ImmGetCompositionString) | キャレット追従不可視 `<textarea>` + Composition イベントブリッジ |
-| **マクロエンジン** | WSH COM オートメーション (`ActiveXObject("SakuraEditor.Editor")`, VBScript/JScript/Perl/Python) | Web Worker / セキュアJSサンドボックス（`Editor` オブジェクト同等メソッド群提供） |
+| **マクロエンジン** | WSH COM オートメーション (`ActiveXObject("SakuraEditor.Editor")`, VBScript/JScript/Perl/Python) | `PlatformService.registerMacroCode` / `MacroEngine` (ブラウザ内スクリプト実行 & コード確認モーダル) |
+| **バックアップ管理** | ローカルフォルダーへの世代バックアップ自動保存 | `PlatformService.saveBackup` (ブラウザ内仮想ストレージ自動退避 + バックアップ一覧・復元ダイアログ) |
 | **外部コマンド実行** | OS `CreateProcess` によるローカル `.exe` 任意実行 | 外部コマンド設定・パラメーター置換・標準入出力GUI完全装備。ローカル実行はブラウザ制限のため Web API / Sidecar 連携インターフェースとして動作 |
 | **Ctags / タグジャンプ** | `ctags.exe` 外部プロセス呼び出しによる tags ファイル生成 | インメモリ正規表現シンボル解析エンジン + tags 互換パーサー |
 | **印刷** | Windows プリンタドライバ GDI DC レンダリング | Canvas 2D 改ページプレビュー + ブラウザ標準 `window.print()` |
-| **ファイル I/O** | Win32 `CreateFile` によるローカルファイル任意パス直読み書き | File System Access API (`showOpenFilePicker`, `showSaveFilePicker`) & Blob ダウンロード |
+| **ファイル / フォルダー I/O** | Win32 `CreateFile` によるローカルファイル任意パス直読み書き | `PlatformService` 抽象化 (File System Access API / Blob API / `<input type="file">` / Tauriフック) |
 
-### 1.4 システム全体アーキテクチャ図
+### 1.4 プラットフォーム抽象化レイヤー (PlatformService) と Tauri / Web デュアルターゲット設計
+Webブラウザ環境ではセキュリティサンドボックスにより `C:\...` 等のOSネイティブファイルパスへの直接アクセスが制限されます。本クローンでは、UIやビジネスロジックにOS依存のハードコードを一切持たせないため、**プラットフォーム抽象化レイヤー (`PlatformService`)** を導入しています。
+
+```mermaid
+flowchart TD
+    UI["共通UI・ダイアログ層 (React / CommonSettingDialog / App)"] --> PlatformService["PlatformService (プラットフォーム抽象化レイヤー)"]
+    PlatformService -->|isTauri() == false| BrowserMode["Webブラウザモード (Web SPA)"]
+    PlatformService -->|isTauri() == true| TauriMode["Tauriデスクトップモード (Rust Backend)"]
+    
+    BrowserMode --> WebFS["File System Access API / FileReader"]
+    BrowserMode --> WebStorage["localStorage 仮想ストレージ (バックアップ / マクロ / 辞書)"]
+    BrowserMode --> WebDownload["Blob ダウンロード / 復元"]
+    
+    TauriMode --> TauriDialog["@tauri-apps/plugin-dialog (ネイティブファイル/フォルダ選択)"]
+    TauriMode --> TauriFS["@tauri-apps/plugin-fs (ローカル C:\ 直アクセス)"]
+```
+
+1. **ブラウザ最適化 (Web SPAモード - 計画A)**:
+   - ダイアログ内の「参照...」ボタンは Web File API (`FileReader` / `showDirectoryPicker`) を呼び出し、選択されたファイルの中身をブラウザ内ストレージへシームレスに取り込みます。
+   - バックアップはローカルストレージへ即時退避され、「バックアップ一覧・復元」サブダイアログから内容プレビュー・ダウンロード・削除が可能です。
+   - 登録マクロはブラウザ内コードキャッシュと連携し、メニューやショートカットから即時実行できます。
+2. **Tauri デスクトップ版への発展性 (計画B準備)**:
+   - 将来 Tauri を導入する際もフロントエンドのコード変更は不要であり、`PlatformService.isTauri()` の分岐先で Tauri の Rust ネイティブプラグイン (`@tauri-apps/plugin-fs`, `@tauri-apps/plugin-dialog`) を呼び出すだけで、軽量なネイティブデスクトップアプリとしてビルド可能です。
 ```mermaid
 flowchart TD
     subgraph UI_Shell["UI & シェル層 (React + Win32 Classic Theme)"]
