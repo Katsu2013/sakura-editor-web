@@ -118,7 +118,7 @@ export const FunctionKeyBar: React.FC<FunctionKeyBarProps> = ({
               height: '20px',
               padding: '0 2px',
               fontSize: '11px',
-              fontFamily: '"MS UI Gothic", "Segoe UI", sans-serif',
+              fontFamily: 'var(--sakura-ui-font)',
               background: '#e8e8e8',
               border: '1px solid #b0b0b0',
               borderRadius: '2px',

@@ -190,7 +190,7 @@ export const OutlineDialog: React.FC<OutlineDialogProps> = ({
               backgroundColor: '#ffffff',
               border: '2px inset #d0d0d0',
               overflowY: 'auto',
-              fontFamily: 'Segoe UI, Meiryo, sans-serif',
+              fontFamily: 'var(--sakura-ui-font)',
               fontSize: '12px',
             }}
           >

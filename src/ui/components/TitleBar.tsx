@@ -22,7 +22,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({ title, isModified }) => {
         userSelect: 'none',
         fontSize: '12px',
         color: '#000000',
-        fontFamily: "'Segoe UI', 'MS UI Gothic', sans-serif",
+        fontFamily: 'var(--sakura-ui-font)',
       }}
     >
       {/* 左側: アイコン & タイトル */}

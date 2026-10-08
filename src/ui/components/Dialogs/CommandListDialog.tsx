@@ -239,7 +239,7 @@ export const CommandListDialog: React.FC<CommandListDialogProps> = ({
               border: '2px inset #ffffff',
               backgroundColor: '#ffffff',
               overflowY: 'auto',
-              fontFamily: '"MS UI Gothic", "Meiryo", sans-serif',
+              fontFamily: 'var(--sakura-ui-font)',
               fontSize: '12px',
             }}
           >

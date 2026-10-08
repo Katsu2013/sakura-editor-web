@@ -125,7 +125,21 @@ import {
   CommandListIcon,
   IncSearchIcon,
   SplitQuadIcon,
+  FnKeyIcon,
+  MiniMapIcon,
+  HistoryIcon,
+  WrapColIcon,
+  WrapRightIcon,
+  WrapLengthIcon,
+  CharCountIcon,
+  ViewModeIcon,
+  KeyHelpIcon,
+  CharCodeSetIcon,
+  LfIcon,
+  CrIcon,
 } from './ui/components/Icons/SakuraIcons';
+import { HistoryManagementDialog } from './ui/components/Dialogs/HistoryManagementDialog';
+import { MiniMapPanel } from './ui/components/MiniMapPanel';
 import './ui/styles/sakura-theme.css';
 
 interface TabDoc {
@@ -142,6 +156,7 @@ interface TabDoc {
   bookmarkManager: BookmarkManager;
   undoManager: UndoManager;
   diffMarks?: Map<number, 'add' | 'del' | 'mod'>;
+  isReadOnly?: boolean;
 }
 
 const SAMPLE_TEXT = `【サクラエディタ Web SPA 完全クローンへようこそ】🌸
@@ -308,6 +323,9 @@ export const App: React.FC = () => {
   const [commonSettingInitialTab, setCommonSettingInitialTab] = useState<CommonTabKey>('general');
   const [typeSettingInitialTab, setTypeSettingInitialTab] = useState<TypeSettingTabKey>('screen');
   const [isFontOpen, setIsFontOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [showMiniMap, setShowMiniMap] = useState(false);
+  const [showKeywordHelp, setShowKeywordHelp] = useState(false);
   const [isGrepReplaceMode, setIsGrepReplaceMode] = useState(false);
   const [zoomPercent, setZoomPercent] = useState<number>(100);
   const [commonSettings, setCommonSettings] = useState<CommonSettingsModel>(DEFAULT_COMMON_SETTINGS);
@@ -1927,6 +1945,97 @@ export const App: React.FC = () => {
       case 'color-settings': setEditingTypeItem(activeTypeSetting); setTypeSettingInitialTab('color'); setIsTypeSettingsOpen(true); break;
       case 'common-settings': setCommonSettingInitialTab('general'); setIsCommonSettingsOpen(true); break;
       case 'font-dialog': setIsFontOpen(true); break;
+      case 'toggle-toolbar':
+        setCommonSettings((prev) => ({
+          ...prev,
+          toolbar: { ...prev.toolbar, showToolbar: !prev.toolbar.showToolbar },
+        }));
+        break;
+      case 'toggle-fnkey':
+        setCommonSettings((prev) => ({
+          ...prev,
+          functionKey: {
+            ...prev.functionKey,
+            showFunctionKey: !prev.functionKey?.showFunctionKey,
+            position: prev.functionKey?.position || 'bottom',
+          },
+        }));
+        break;
+      case 'toggle-tabbar':
+        setCommonSettings((prev) => ({
+          ...prev,
+          tabbar: { ...prev.tabbar, showTabbar: !prev.tabbar.showTabbar },
+        }));
+        break;
+      case 'toggle-statusbar':
+        setCommonSettings((prev) => ({
+          ...prev,
+          statusbar: { ...prev.statusbar, showStatusbar: !prev.statusbar.showStatusbar },
+        }));
+        break;
+      case 'toggle-minimap':
+        setShowMiniMap((prev) => !prev);
+        break;
+      case 'history-manage':
+        setIsHistoryOpen(true);
+        break;
+      case 'wrap-none': {
+        const updated = {
+          ...activeTypeSetting,
+          wrapConfig: { ...activeTypeSetting.wrapConfig, wrapMode: 'none' as const },
+        };
+        setTypeSettingsList((prev) => prev.map((t) => (t.id === activeTypeId ? updated : t)));
+        break;
+      }
+      case 'wrap-col': {
+        const updated = {
+          ...activeTypeSetting,
+          wrapConfig: { ...activeTypeSetting.wrapConfig, wrapMode: 'column' as const },
+        };
+        setTypeSettingsList((prev) => prev.map((t) => (t.id === activeTypeId ? updated : t)));
+        break;
+      }
+      case 'wrap-right': {
+        const updated = {
+          ...activeTypeSetting,
+          wrapConfig: { ...activeTypeSetting.wrapConfig, wrapMode: 'window' as const },
+        };
+        setTypeSettingsList((prev) => prev.map((t) => (t.id === activeTypeId ? updated : t)));
+        break;
+      }
+      case 'wrap-column-count': {
+        const input = prompt('折り返し桁数を入力してください (10 - 1000):', activeTypeSetting.wrapConfig.wrapColumn.toString());
+        const val = parseInt(input || '', 10);
+        if (!isNaN(val) && val >= 10 && val <= 1000) {
+          const updated = {
+            ...activeTypeSetting,
+            wrapConfig: { ...activeTypeSetting.wrapConfig, wrapColumn: val, wrapMode: 'column' as const },
+          };
+          setTypeSettingsList((prev) => prev.map((t) => (t.id === activeTypeId ? updated : t)));
+        }
+        break;
+      }
+      case 'toggle-overstrike':
+        setCommonSettings((prev) => ({
+          ...prev,
+          general: { ...prev.general, overstrike: !prev.general.overstrike },
+        }));
+        break;
+      case 'toggle-viewmode':
+        updateCurrentDoc((d) => ({ ...d, isReadOnly: !d.isReadOnly }));
+        break;
+      case 'toggle-keyword-help':
+        setShowKeywordHelp((prev) => !prev);
+        break;
+      case 'line-ending-crlf':
+        handleConvertLineEnding('CRLF');
+        break;
+      case 'line-ending-lf':
+        handleConvertLineEnding('LF');
+        break;
+      case 'line-ending-cr':
+        handleConvertLineEnding('CR');
+        break;
       case 'export-ini': handleExportIni(); break;
       case 'import-ini': handleImportIni(); break;
       case 'split-v': setSplitMode('vertical'); break;
@@ -2054,6 +2163,19 @@ export const App: React.FC = () => {
         'Ctrl+F8': 'to-half',
         'Ctrl+F9': 'to-kana',
         'Ctrl+F10': 'to-hira',
+        'Ctrl+1': 'toggle-toolbar',
+        'Ctrl+2': 'toggle-fnkey',
+        'Ctrl+3': 'toggle-statusbar',
+        'Ctrl+4': 'type-list',
+        'Ctrl+5': 'type-settings',
+        'Ctrl+6': 'common-settings',
+        'Ctrl+7': 'font-dialog',
+        'Ctrl+Alt+X': 'wrap-none',
+        'Ctrl+Alt+S': 'wrap-col',
+        'Ctrl+Alt+W': 'wrap-right',
+        'Ctrl+Alt+U': 'wrap-column-count',
+        'Insert': 'toggle-overstrike',
+        'Ins': 'toggle-overstrike',
       };
 
       const matchedCmd = defaultMap[pressedCombo];
@@ -2068,6 +2190,7 @@ export const App: React.FC = () => {
     commonSettings,
     currentDoc,
     updateCurrentDoc,
+    executeRegisteredMacro,
   ]);
 
   // メニュー構造（サクラエディタ Windows版 画面準拠・完全再現）
@@ -2441,53 +2564,19 @@ export const App: React.FC = () => {
           },
         },
         { id: 'external-tool', label: '外部コマンド実行(X)...', action: () => setIsExternalToolOpen(true) },
+        { id: 't-sep2', label: '', separator: true },
+        { id: 'export-ini', label: '設定のエクスポート (sakura.ini)...', icon: <ExportIniIcon size={16} />, action: handleExportIni },
+        { id: 'import-ini', label: '設定のインポート (sakura.ini)...', icon: <ImportIniIcon size={16} />, action: handleImportIni },
       ],
     },
     {
       title: '設定',
       accessKey: 'O',
       items: [
-        { id: 'type-list', label: 'タイプ別設定一覧(L)...', icon: <TypeListIcon size={16} />, action: () => setIsTypeListOpen(true) },
-        {
-          id: 'type-settings',
-          label: 'タイプ別設定(Y)...',
-          icon: <TypeSettingsIcon size={16} />,
-          action: () => {
-            setEditingTypeItem(activeTypeSetting);
-            setTypeSettingInitialTab('screen');
-            setIsTypeSettingsOpen(true);
-          },
-        },
-        {
-          id: 'color-settings',
-          label: 'カラー設定(E)...',
-          icon: <TypeSettingsIcon size={16} />,
-          action: () => {
-            setEditingTypeItem(activeTypeSetting);
-            setTypeSettingInitialTab('color');
-            setIsTypeSettingsOpen(true);
-          },
-        },
-        {
-          id: 'common-settings',
-          label: '共通設定(C)...',
-          icon: <CommonSettingsIcon size={16} />,
-          action: () => {
-            setCommonSettingInitialTab('general');
-            setIsCommonSettingsOpen(true);
-          },
-        },
-        { id: 'o-sep1', label: '', separator: true },
-        {
-          id: 'font-dialog',
-          label: 'フォント(F)...',
-          icon: <FontIcon size={16} />,
-          action: () => setIsFontOpen(true),
-        },
-        { id: 'o-sep2', label: '', separator: true },
         {
           id: 'toggle-toolbar',
-          label: 'ツールバー表示(T)',
+          label: commonSettings.toolbar.showToolbar ? '表示中のツールバーを隠す(T)' : 'ツールバーを表示(T)',
+          shortcut: 'Ctrl+1',
           checked: commonSettings.toolbar.showToolbar,
           action: () =>
             setCommonSettings((prev) => ({
@@ -2497,7 +2586,9 @@ export const App: React.FC = () => {
         },
         {
           id: 'toggle-fnkey',
-          label: 'ファンクションキー表示(K)',
+          label: commonSettings.functionKey?.showFunctionKey ? '表示中のファンクションキーを隠す(K)' : 'ファンクションキーを表示(K)',
+          shortcut: 'Ctrl+2',
+          icon: <FnKeyIcon size={16} />,
           checked: !!commonSettings.functionKey?.showFunctionKey,
           action: () =>
             setCommonSettings((prev) => ({
@@ -2510,27 +2601,8 @@ export const App: React.FC = () => {
             })),
         },
         {
-          id: 'toggle-statusbar',
-          label: 'ステータスバー表示(S)',
-          checked: commonSettings.statusbar.showStatusbar,
-          action: () =>
-            setCommonSettings((prev) => ({
-              ...prev,
-              statusbar: { ...prev.statusbar, showStatusbar: !prev.statusbar.showStatusbar },
-            })),
-        },
-        {
-          id: 'toggle-ruler',
-          label: 'ルーラー表示(R)',
-          checked: activeTypeSetting.showRuler,
-          action: () => {
-            const updated = { ...activeTypeSetting, showRuler: !activeTypeSetting.showRuler };
-            setTypeSettingsList((prev) => prev.map((t) => (t.id === activeTypeId ? updated : t)));
-          },
-        },
-        {
           id: 'toggle-tabbar',
-          label: 'タブバー表示(B)',
+          label: commonSettings.tabbar.showTabbar ? '表示中のタブバーを隠す(M)' : 'タブバーを表示(M)',
           checked: commonSettings.tabbar.showTabbar,
           action: () =>
             setCommonSettings((prev) => ({
@@ -2539,17 +2611,210 @@ export const App: React.FC = () => {
             })),
         },
         {
-          id: 'toggle-linenum',
-          label: '行番号表示(N)',
-          checked: activeTypeSetting.showLineNumbers,
+          id: 'toggle-statusbar',
+          label: commonSettings.statusbar.showStatusbar ? '表示中のステータスバーを隠す(S)' : 'ステータスバーを表示(S)',
+          shortcut: 'Ctrl+3',
+          checked: commonSettings.statusbar.showStatusbar,
+          action: () =>
+            setCommonSettings((prev) => ({
+              ...prev,
+              statusbar: { ...prev.statusbar, showStatusbar: !prev.statusbar.showStatusbar },
+            })),
+        },
+        {
+          id: 'toggle-minimap',
+          label: showMiniMap ? '表示中のミニマップを隠す(N)' : 'ミニマップを表示(N)',
+          icon: <MiniMapIcon size={16} />,
+          checked: showMiniMap,
+          action: () => setShowMiniMap((prev) => !prev),
+        },
+        { id: 'o-sep1', label: '', separator: true },
+        {
+          id: 'type-list',
+          label: 'タイプ別設定一覧(L)...',
+          shortcut: 'Ctrl+4',
+          icon: <TypeListIcon size={16} />,
+          action: () => setIsTypeListOpen(true),
+        },
+        {
+          id: 'type-settings',
+          label: 'タイプ別設定(Y)...',
+          shortcut: 'Ctrl+5',
+          icon: <TypeSettingsIcon size={16} />,
           action: () => {
-            const updated = { ...activeTypeSetting, showLineNumbers: !activeTypeSetting.showLineNumbers };
-            setTypeSettingsList((prev) => prev.map((t) => (t.id === activeTypeId ? updated : t)));
+            setEditingTypeItem(activeTypeSetting);
+            setTypeSettingInitialTab('screen');
+            setIsTypeSettingsOpen(true);
+          },
+        },
+        {
+          id: 'common-settings',
+          label: '共通設定(C)...',
+          shortcut: 'Ctrl+6',
+          icon: <CommonSettingsIcon size={16} />,
+          action: () => {
+            setCommonSettingInitialTab('general');
+            setIsCommonSettingsOpen(true);
+          },
+        },
+        {
+          id: 'font-dialog',
+          label: 'フォント設定(F)...',
+          shortcut: 'Ctrl+7',
+          icon: <FontIcon size={16} />,
+          action: () => setIsFontOpen(true),
+        },
+        {
+          id: 'history-manage',
+          label: '履歴の管理(O)...',
+          icon: <HistoryIcon size={16} />,
+          action: () => setIsHistoryOpen(true),
+        },
+        { id: 'o-sep2', label: '', separator: true },
+        {
+          id: 'wrap-method',
+          label: '折り返し方法(X)',
+          children: [
+            {
+              id: 'wrap-none',
+              label: '折り返さない(X)',
+              shortcut: 'Ctrl+Alt+X',
+              checked: activeTypeSetting.wrapConfig.wrapMode === 'none',
+              action: () => {
+                const updated = {
+                  ...activeTypeSetting,
+                  wrapConfig: { ...activeTypeSetting.wrapConfig, wrapMode: 'none' as const },
+                };
+                setTypeSettingsList((prev) => prev.map((t) => (t.id === activeTypeId ? updated : t)));
+              },
+            },
+            {
+              id: 'wrap-col',
+              label: '指定桁で折り返す(S)',
+              shortcut: 'Ctrl+Alt+S',
+              icon: <WrapColIcon size={16} />,
+              checked: activeTypeSetting.wrapConfig.wrapMode === 'column',
+              action: () => {
+                const updated = {
+                  ...activeTypeSetting,
+                  wrapConfig: { ...activeTypeSetting.wrapConfig, wrapMode: 'column' as const },
+                };
+                setTypeSettingsList((prev) => prev.map((t) => (t.id === activeTypeId ? updated : t)));
+              },
+            },
+            {
+              id: 'wrap-right',
+              label: '右端で折り返す(W)',
+              shortcut: 'Ctrl+Alt+W',
+              icon: <WrapRightIcon size={16} />,
+              checked: activeTypeSetting.wrapConfig.wrapMode === 'window',
+              action: () => {
+                const updated = {
+                  ...activeTypeSetting,
+                  wrapConfig: { ...activeTypeSetting.wrapConfig, wrapMode: 'window' as const },
+                };
+                setTypeSettingsList((prev) => prev.map((t) => (t.id === activeTypeId ? updated : t)));
+              },
+            },
+          ],
+        },
+        {
+          id: 'wrap-column-count',
+          label: `折り返し桁数: ${activeTypeSetting.wrapConfig.wrapColumn} 桁（${
+            activeTypeSetting.wrapConfig.wrapMode === 'window'
+              ? '右端'
+              : activeTypeSetting.wrapConfig.wrapMode === 'none'
+              ? '折り返さない'
+              : '指定桁'
+          }）(W)`,
+          shortcut: 'Ctrl+Alt+U',
+          icon: <WrapLengthIcon size={16} />,
+          action: () => {
+            const input = prompt(
+              '折り返し桁数を入力してください (10 - 1000):',
+              activeTypeSetting.wrapConfig.wrapColumn.toString()
+            );
+            const val = parseInt(input || '', 10);
+            if (!isNaN(val) && val >= 10 && val <= 1000) {
+              const updated = {
+                ...activeTypeSetting,
+                wrapConfig: { ...activeTypeSetting.wrapConfig, wrapColumn: val, wrapMode: 'column' as const },
+              };
+              setTypeSettingsList((prev) => prev.map((t) => (t.id === activeTypeId ? updated : t)));
+            }
+          },
+        },
+        {
+          id: 'char-count-method',
+          label: '文字カウント方法(B)',
+          icon: <CharCountIcon size={16} />,
+          action: () => {
+            alert(
+              `【文字カウント情報】\n` +
+              `総文字数: ${currentDoc.buffer.getText(currentDoc.lineEnding).length} 文字\n` +
+              `総行数: ${currentDoc.buffer.getLineCount()} 行\n` +
+              `選択中: ${selectedInfo.chars} 文字 (${selectedInfo.lines} 行)`
+            );
           },
         },
         { id: 'o-sep3', label: '', separator: true },
-        { id: 'export-ini', label: '設定のエクスポート (sakura.ini)...', icon: <ExportIniIcon size={16} />, action: handleExportIni },
-        { id: 'import-ini', label: '設定のインポート (sakura.ini)...', icon: <ImportIniIcon size={16} />, action: handleImportIni },
+        {
+          id: 'toggle-overstrike',
+          label: '挿入／上書きモード切り替え(I)',
+          shortcut: 'Ins',
+          checked: !commonSettings.general.overstrike,
+          action: () =>
+            setCommonSettings((prev) => ({
+              ...prev,
+              general: { ...prev.general, overstrike: !prev.general.overstrike },
+            })),
+        },
+        {
+          id: 'toggle-viewmode',
+          label: 'ビューモード(R)',
+          icon: <ViewModeIcon size={16} />,
+          checked: !!currentDoc.isReadOnly,
+          action: () => updateCurrentDoc((d) => ({ ...d, isReadOnly: !d.isReadOnly })),
+        },
+        {
+          id: 'toggle-keyword-help',
+          label: 'キーワードヘルプ自動表示する(H)',
+          icon: <KeyHelpIcon size={16} />,
+          checked: showKeywordHelp,
+          action: () => setShowKeywordHelp((prev) => !prev),
+        },
+        {
+          id: 'code-change',
+          label: '文字コードセット指定(A)...',
+          icon: <CharCodeSetIcon size={16} />,
+          action: () => setIsEncodingOpen(true),
+        },
+        {
+          id: 'input-line-ending',
+          label: '入力改行コード指定(E)',
+          children: [
+            {
+              id: 'line-ending-crlf',
+              label: '入力改行コード指定(CRLF)',
+              checked: currentDoc.lineEnding === 'CRLF',
+              action: () => handleConvertLineEnding('CRLF'),
+            },
+            {
+              id: 'line-ending-lf',
+              label: '入力改行コード指定(LF)',
+              icon: <LfIcon size={16} />,
+              checked: currentDoc.lineEnding === 'LF',
+              action: () => handleConvertLineEnding('LF'),
+            },
+            {
+              id: 'line-ending-cr',
+              label: '入力改行コード指定(CR)',
+              icon: <CrIcon size={16} />,
+              checked: currentDoc.lineEnding === 'CR',
+              action: () => handleConvertLineEnding('CR'),
+            },
+          ],
+        },
       ],
     },
     {
@@ -2639,7 +2904,7 @@ export const App: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden' }}>
       {/* ウィンドウ タイトルバー (Windows サクラエディタ完全再現) */}
-      <TitleBar title={currentDoc.title} isModified={currentDoc.isModified} />
+      <TitleBar title={`${currentDoc.title}${currentDoc.isReadOnly ? ' (ビューモード)' : ''}`} isModified={currentDoc.isModified} />
 
       {/* メニューバー (真正 Win32 アイコン付き) */}
       <MenuBar groups={menuGroups} />
@@ -2776,6 +3041,7 @@ export const App: React.FC = () => {
                     cursor={currentDoc.cursor}
                     selection={currentDoc.selection}
                     diffMarks={currentDoc.diffMarks}
+                    readOnly={!!currentDoc.isReadOnly}
                     onCursorChange={(pos, vCol, charCode) => {
                       updateCurrentDoc((d) => ({ ...d, cursor: pos }));
                       setVisualCol(vCol);
@@ -2821,6 +3087,7 @@ export const App: React.FC = () => {
                     cursor={cursor2}
                     selection={selection2}
                     diffMarks={currentDoc.diffMarks}
+                    readOnly={!!currentDoc.isReadOnly}
                     onCursorChange={(pos) => setCursor2(pos)}
                     onSelectionChange={(sel) => setSelection2(sel)}
                     onContentChange={() => {
@@ -2868,6 +3135,7 @@ export const App: React.FC = () => {
                     cursor={cursor3}
                     selection={selection3}
                     diffMarks={currentDoc.diffMarks}
+                    readOnly={!!currentDoc.isReadOnly}
                     onCursorChange={(pos) => setCursor3(pos)}
                     onSelectionChange={(sel) => setSelection3(sel)}
                     onContentChange={() => {
@@ -2909,6 +3177,7 @@ export const App: React.FC = () => {
                     cursor={cursor4}
                     selection={selection4}
                     diffMarks={currentDoc.diffMarks}
+                    readOnly={!!currentDoc.isReadOnly}
                     onCursorChange={(pos) => setCursor4(pos)}
                     onSelectionChange={(sel) => setSelection4(sel)}
                     onContentChange={() => {
@@ -2946,14 +3215,16 @@ export const App: React.FC = () => {
           ) : (
             <>
               {/* ペイン 1 */}
-              <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-                <EditorView
-                  key={currentDoc.id}
-                  buffer={currentDoc.buffer}
-                  settings={activeTypeSetting}
-                  cursor={currentDoc.cursor}
-                  selection={currentDoc.selection}
-                  diffMarks={currentDoc.diffMarks}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
+                <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+                  <EditorView
+                    key={currentDoc.id}
+                    buffer={currentDoc.buffer}
+                    settings={activeTypeSetting}
+                    cursor={currentDoc.cursor}
+                    selection={currentDoc.selection}
+                    diffMarks={currentDoc.diffMarks}
+                    readOnly={!!currentDoc.isReadOnly}
                   onCursorChange={(pos, vCol, charCode) => {
                     updateCurrentDoc((d) => ({ ...d, cursor: pos }));
                     setVisualCol(vCol);
@@ -2990,6 +3261,19 @@ export const App: React.FC = () => {
                   showModifiedGutter={commonSettings.general.showModifiedGutter}
                 />
               </div>
+              {showMiniMap && (
+                <MiniMapPanel
+                  buffer={currentDoc.buffer}
+                  cursor={currentDoc.cursor}
+                  onNavigate={(line) =>
+                    updateCurrentDoc((d) => ({
+                      ...d,
+                      cursor: { line, column: 0 },
+                    }))
+                  }
+                />
+              )}
+            </div>
 
               {/* スプリッター & ペイン 2 (画面分割時) */}
               {splitMode !== 'none' && (
@@ -3011,6 +3295,7 @@ export const App: React.FC = () => {
                       cursor={cursor2}
                       selection={selection2}
                       diffMarks={currentDoc.diffMarks}
+                      readOnly={!!currentDoc.isReadOnly}
                       onCursorChange={(pos) => setCursor2(pos)}
                       onSelectionChange={(sel) => setSelection2(sel)}
                       onContentChange={() => {
@@ -3182,6 +3467,21 @@ export const App: React.FC = () => {
         initialTab={commonSettingInitialTab}
         onClose={() => setIsCommonSettingsOpen(false)}
         onSave={(updated) => setCommonSettings(updated)}
+      />
+
+      <HistoryManagementDialog
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        recentFiles={tabs.map((t) => t.title)}
+        onOpenFile={(path) => {
+          const found = tabs.find((t) => t.title === path);
+          if (found) {
+            setActiveTabId(found.id);
+          } else {
+            handleNew();
+            updateCurrentDoc((d) => ({ ...d, title: path }));
+          }
+        }}
       />
 
       <OutlineDialog

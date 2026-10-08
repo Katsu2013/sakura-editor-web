@@ -343,7 +343,7 @@ export const TypeSettingDialog: React.FC<TypeSettingDialogProps> = ({
           onClick={(e) => e.stopPropagation()}
           style={{
             width: '630px',
-            fontFamily: "'MS UI Gothic', 'Segoe UI', sans-serif",
+            fontFamily: 'var(--sakura-ui-font)',
             fontSize: '12px',
           }}
         >
@@ -1998,7 +1998,7 @@ export const TypeSettingDialog: React.FC<TypeSettingDialogProps> = ({
           <div
             className="sakura-dialog-window"
             onClick={(e) => e.stopPropagation()}
-            style={{ width: '380px', fontFamily: "'MS UI Gothic', 'Segoe UI', sans-serif", fontSize: '12px' }}
+            style={{ width: '380px', fontFamily: 'var(--sakura-ui-font)', fontSize: '12px' }}
           >
             <div className="sakura-dialog-titlebar">
               <span>強調キーワード (2〜10)</span>

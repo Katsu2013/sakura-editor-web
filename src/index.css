@@ -22,7 +22,7 @@
     right: 0 !important;
     bottom: 0 !important;
     background-color: #f0f0f0;
-    font-family: 'MS UI Gothic', 'Segoe UI', Tahoma, sans-serif;
+    font-family: "Yu Gothic UI", "YuGothicUI", "Meiryo UI", "メイリオ", "Meiryo", "MS UI Gothic", "MS UI Githic", "MS Pゴシック", "MS PGothic", sans-serif;
     user-select: none;
     box-sizing: border-box !important;
   }

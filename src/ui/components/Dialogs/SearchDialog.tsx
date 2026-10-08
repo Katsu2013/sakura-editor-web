@@ -143,7 +143,7 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
           width: isReplaceMode ? '520px' : '460px',
           maxWidth: 'calc(100vw - 24px)',
           maxHeight: 'calc(100vh - 24px)',
-          fontFamily: "'MS UI Gothic', 'Segoe UI', sans-serif",
+          fontFamily: 'var(--sakura-ui-font)',
           fontSize: '12px',
           display: 'flex',
           flexDirection: 'column',

@@ -120,7 +120,7 @@ export const WordCompletionPopup: React.FC<WordCompletionPopupProps> = ({
         border: '2px solid #808080',
         boxShadow: '3px 3px 8px rgba(0,0,0,0.3)',
         zIndex: 9999,
-        fontFamily: '"MS UI Gothic", "Meiryo", sans-serif',
+        fontFamily: 'var(--sakura-ui-font)',
         fontSize: '12px',
         userSelect: 'none',
         display: 'flex',

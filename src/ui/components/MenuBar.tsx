@@ -57,7 +57,7 @@ const MenuItemRow: React.FC<DropdownItemProps> = ({ item, onItemClick }) => {
       {/* アイコンまたはチェックマーク */}
       <div style={{ width: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '6px' }}>
         {item.checked ? (
-          <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#000000' }}>✓</span>
+          <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'inherit' }}>✓</span>
         ) : typeof item.icon === 'string' ? (
           <span style={{ fontSize: '13px' }}>{item.icon}</span>
         ) : (
@@ -70,9 +70,9 @@ const MenuItemRow: React.FC<DropdownItemProps> = ({ item, onItemClick }) => {
 
       {/* ショートカット or サブメニュー矢印 */}
       {hasChildren ? (
-        <span style={{ marginLeft: '16px', fontSize: '10px', color: '#666666' }}>▶</span>
+        <span style={{ marginLeft: '16px', fontSize: '9px', color: 'inherit', opacity: 0.75 }}>▶</span>
       ) : item.shortcut ? (
-        <span style={{ color: '#888888', marginLeft: '24px', fontSize: '11px', whiteSpace: 'nowrap' }}>
+        <span style={{ color: 'inherit', opacity: 0.7, marginLeft: '24px', fontSize: '11px', whiteSpace: 'nowrap' }}>
           {item.shortcut}
         </span>
       ) : null}
@@ -85,8 +85,9 @@ const MenuItemRow: React.FC<DropdownItemProps> = ({ item, onItemClick }) => {
             position: 'absolute',
             top: -2,
             left: '100%',
-            minWidth: '190px',
+            minWidth: '200px',
             boxShadow: '2px 2px 6px rgba(0,0,0,0.25)',
+            zIndex: 300,
           }}
         >
           {item.children!.map((child, cIdx) => (

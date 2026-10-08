@@ -65,7 +65,7 @@ export const IncrementalSearchBar: React.FC<IncrementalSearchBarProps> = ({
         borderTop: '1px solid #716f64',
         borderBottom: '1px solid #ffffff',
         gap: '8px',
-        fontFamily: '"MS UI Gothic", "Meiryo", sans-serif',
+        fontFamily: 'var(--sakura-ui-font)',
         fontSize: '12px',
         userSelect: 'none',
         zIndex: 50,

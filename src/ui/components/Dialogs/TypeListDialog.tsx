@@ -179,7 +179,7 @@ export const TypeListDialog: React.FC<TypeListDialogProps> = ({
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '440px',
-          fontFamily: "'MS UI Gothic', 'Segoe UI', sans-serif",
+          fontFamily: 'var(--sakura-ui-font)',
           fontSize: '12px',
         }}
       >

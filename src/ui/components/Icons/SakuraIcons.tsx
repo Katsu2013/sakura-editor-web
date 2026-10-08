@@ -782,4 +782,132 @@ export const SplitQuadIcon: React.FC<IconProps> = ({ size = 16 }) => (
   </svg>
 );
 
+// --- 設定(O) メニュー専用アイコン群 (サクラエディタ 2.4.3 準拠) ---
+
+// ファンクションキー (F1 / F12 キートップ)
+export const FnKeyIcon: React.FC<IconProps> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" style={{ display: 'block' }}>
+    <rect x="1" y="1" width="14" height="6" rx="1" fill="#f1f5f9" stroke="#334155" strokeWidth="0.8" />
+    <text x="2" y="5.8" fontSize="4.2" fontWeight="bold" fill="#0f172a" fontFamily="sans-serif">F1</text>
+    <line x1="8" y1="2" x2="8" y2="6" stroke="#94a3b8" strokeWidth="0.6" />
+    <text x="9.2" y="5.8" fontSize="4" fontWeight="bold" fill="#475569" fontFamily="sans-serif">F6</text>
+    <rect x="1" y="8" width="14" height="6" rx="1" fill="#f1f5f9" stroke="#334155" strokeWidth="0.8" />
+    <text x="1.5" y="12.8" fontSize="4.2" fontWeight="bold" fill="#0f172a" fontFamily="sans-serif">F7</text>
+    <line x1="7.8" y1="9" x2="7.8" y2="13" stroke="#94a3b8" strokeWidth="0.6" />
+    <text x="8.5" y="12.8" fontSize="3.8" fontWeight="bold" fill="#2563eb" fontFamily="sans-serif">F12</text>
+  </svg>
+);
+
+// ミニマップ (ウィンドウ右側の概要マップバー)
+export const MiniMapIcon: React.FC<IconProps> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" style={{ display: 'block' }}>
+    <rect x="1" y="2" width="14" height="12" fill="#ffffff" stroke="#334155" strokeWidth="0.8" />
+    <rect x="1" y="2" width="14" height="2.5" fill="#2563eb" />
+    <line x1="3" y1="6.5" x2="8.5" y2="6.5" stroke="#94a3b8" strokeWidth="0.8" />
+    <line x1="3" y1="8.5" x2="7.5" y2="8.5" stroke="#94a3b8" strokeWidth="0.8" />
+    <line x1="3" y1="10.5" x2="8.5" y2="10.5" stroke="#94a3b8" strokeWidth="0.8" />
+    <rect x="10" y="4.5" width="5" height="9.5" fill="#e2e8f0" stroke="#64748b" strokeWidth="0.5" />
+    <rect x="10.5" y="7" width="4" height="3" fill="#93c5fd" stroke="#2563eb" strokeWidth="0.6" />
+  </svg>
+);
+
+// 履歴の管理 (書類 + 赤いチェックマーク)
+export const HistoryIcon: React.FC<IconProps> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" style={{ display: 'block' }}>
+    <path d="M2 1h7l4 4v10H2V1z" fill="#ffffff" stroke="#475569" strokeWidth="0.8" />
+    <polygon points="9,1 9,5 13,5" fill="#d1d5db" stroke="#475569" strokeWidth="0.6" />
+    <line x1="4" y1="6" x2="8" y2="6" stroke="#94a3b8" strokeWidth="0.8" />
+    <line x1="4" y1="8" x2="11" y2="8" stroke="#94a3b8" strokeWidth="0.8" />
+    <polyline points="4,10 7,13 14,5" fill="none" stroke="#dc2626" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+// 指定桁で折り返す (指定桁ガイド線 + 折り返し矢印)
+export const WrapColIcon: React.FC<IconProps> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" style={{ display: 'block' }}>
+    <rect x="1" y="2" width="14" height="12" rx="1" fill="#ffffff" stroke="#475569" strokeWidth="0.8" />
+    <line x1="9" y1="2" x2="9" y2="14" stroke="#dc2626" strokeWidth="0.8" strokeDasharray="1.5,1.5" />
+    <path d="M3 5h5a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H4" fill="none" stroke="#2563eb" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    <polyline points="5.5,7.5 3.5,9 5.5,10.5" fill="none" stroke="#2563eb" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+// 右端で折り返す (右端ガイド線 + 折り返し矢印)
+export const WrapRightIcon: React.FC<IconProps> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" style={{ display: 'block' }}>
+    <rect x="1" y="2" width="14" height="12" rx="1" fill="#ffffff" stroke="#475569" strokeWidth="0.8" />
+    <line x1="13.5" y1="2" x2="13.5" y2="14" stroke="#2563eb" strokeWidth="1.5" />
+    <path d="M3 5h9a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H4" fill="none" stroke="#2563eb" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    <polyline points="5.5,7.5 3.5,9 5.5,10.5" fill="none" stroke="#2563eb" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+// 折り返し桁数 (桁幅アイコン)
+export const WrapLengthIcon: React.FC<IconProps> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" style={{ display: 'block' }}>
+    <rect x="1" y="2" width="14" height="12" rx="1" fill="#f8fafc" stroke="#475569" strokeWidth="0.8" />
+    <line x1="2" y1="4" x2="2" y2="12" stroke="#2563eb" strokeWidth="1" />
+    <line x1="14" y1="4" x2="14" y2="12" stroke="#2563eb" strokeWidth="1" />
+    <line x1="3" y1="8" x2="13" y2="8" stroke="#2563eb" strokeWidth="1.2" />
+    <polygon points="3,8 5.5,6 5.5,10" fill="#2563eb" />
+    <polygon points="13,8 10.5,6 10.5,10" fill="#2563eb" />
+  </svg>
+);
+
+// 文字カウント方法 (BYTE バッジ)
+export const CharCountIcon: React.FC<IconProps> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" style={{ display: 'block' }}>
+    <rect x="1" y="3" width="14" height="10" rx="1.5" fill="#f8fafc" stroke="#334155" strokeWidth="0.8" />
+    <text x="1.6" y="10.2" fontSize="5.2" fontWeight="900" fill="#0f172a" fontFamily="sans-serif" letterSpacing="-0.3px">BYTE</text>
+  </svg>
+);
+
+// ビューモード (書類 + 赤メガネ)
+export const ViewModeIcon: React.FC<IconProps> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" style={{ display: 'block' }}>
+    <rect x="2" y="1" width="12" height="14" rx="1" fill="#ffffff" stroke="#64748b" strokeWidth="0.8" />
+    <line x1="4" y1="4" x2="12" y2="4" stroke="#cbd5e1" strokeWidth="0.8" />
+    {/* 赤いメガネ */}
+    <circle cx="5.5" cy="9.5" r="2.4" fill="#eff6ff" stroke="#dc2626" strokeWidth="1.1" />
+    <circle cx="10.5" cy="9.5" r="2.4" fill="#eff6ff" stroke="#dc2626" strokeWidth="1.1" />
+    <line x1="7.9" y1="9.5" x2="8.1" y2="9.5" stroke="#dc2626" strokeWidth="1.2" />
+    <path d="M3.2 8.5L2 7.5M12.8 8.5L14 7.5" stroke="#dc2626" strokeWidth="1" strokeLinecap="round" />
+  </svg>
+);
+
+// キーワードヘルプ自動表示 (黄色吹き出し + ヘルプ)
+export const KeyHelpIcon: React.FC<IconProps> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" style={{ display: 'block' }}>
+    <path d="M2 2h12v9H6l-3 3v-3H2V2z" fill="#fef08a" stroke="#ca8a04" strokeWidth="0.8" />
+    <text x="5.5" y="9.5" fontSize="7.5" fontWeight="bold" fill="#2563eb" fontFamily="sans-serif">?</text>
+    <polygon points="12,11 15,14 13.5,14.5 12,13" fill="#2563eb" />
+  </svg>
+);
+
+// 文字コードセット指定 (赤S + 青U)
+export const CharCodeSetIcon: React.FC<IconProps> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" style={{ display: 'block' }}>
+    <rect x="1" y="2" width="14" height="12" rx="1" fill="#f8fafc" stroke="#475569" strokeWidth="0.8" />
+    <text x="2" y="11" fontSize="9.5" fontWeight="bold" fill="#dc2626" fontFamily="sans-serif">S</text>
+    <text x="7.8" y="11" fontSize="9.5" fontWeight="bold" fill="#2563eb" fontFamily="sans-serif">U</text>
+  </svg>
+);
+
+// 入力改行コード LF (青い下矢印 + LF)
+export const LfIcon: React.FC<IconProps> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" style={{ display: 'block' }}>
+    <path d="M4 2v10m-2.5-3L4 12l2.5-3" fill="none" stroke="#2563eb" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    <text x="7.2" y="10.5" fontSize="5.2" fontWeight="bold" fill="#7c3aed" fontFamily="sans-serif">LF</text>
+  </svg>
+);
+
+// 入力改行コード CR (青い左折矢印 + CR)
+export const CrIcon: React.FC<IconProps> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" style={{ display: 'block' }}>
+    <path d="M12 4v5H4m2.5-2.5L4 9l2.5 2.5" fill="none" stroke="#2563eb" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <text x="5.5" y="14.5" fontSize="4.8" fontWeight="bold" fill="#7c3aed" fontFamily="sans-serif">CR</text>
+  </svg>
+);
+
+
 

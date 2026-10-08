@@ -9,6 +9,7 @@
   --win-text: #000000;
   --win-highlight: #0a246a;
   --win-highlight-text: #ffffff;
+  --sakura-ui-font: "Yu Gothic UI", "YuGothicUI", "Meiryo UI", "メイリオ", "Meiryo", "MS UI Gothic", "MS UI Githic", "MS Pゴシック", "MS PGothic", sans-serif;
 }
 
 body, html {
@@ -17,11 +18,38 @@ body, html {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  font-family: 'MS UI Gothic', 'Segoe UI', Tahoma, sans-serif;
+  font-family: var(--sakura-ui-font);
   font-size: 12px;
   user-select: none;
   background-color: var(--win-face);
   color: var(--win-text);
+}
+
+/* 全UIコンポーネント (メニュー・ダイアログ・ボタン・ステータスバー等) へのフォント適用 */
+button,
+input,
+select,
+textarea,
+.sakura-menu-bar,
+.sakura-menu-item,
+.sakura-dropdown,
+.sakura-dropdown-item,
+.sakura-toolbar,
+.sakura-tabbar,
+.sakura-tab,
+.sakura-statusbar,
+.sakura-status-panel,
+.sakura-function-key-bar,
+.sakura-dialog-window,
+.sakura-dialog-titlebar,
+.sakura-dialog-body,
+.sakura-dialog-btn,
+.sakura-btn,
+.win32-tab-btn,
+.win32-tab-header,
+.sakura-property-sheet,
+.sakura-tree-view {
+  font-family: var(--sakura-ui-font);
 }
 
 /* メニューバー */

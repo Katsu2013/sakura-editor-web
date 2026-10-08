@@ -170,7 +170,7 @@ export const GrepDialog: React.FC<GrepDialogProps> = ({
       <div
         className="sakura-dialog-window"
         onClick={(e) => e.stopPropagation()}
-        style={{ width: '540px', fontFamily: '"MS UI Gothic", "Meiryo", sans-serif', fontSize: '12px' }}
+        style={{ width: '540px', fontFamily: 'var(--sakura-ui-font)', fontSize: '12px' }}
       >
         <div className="sakura-dialog-titlebar">
           <span>{isReplaceMode ? 'Grep 置換' : 'Grep 検索'}</span>

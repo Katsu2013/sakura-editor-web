@@ -62,6 +62,7 @@ interface EditorViewProps {
   isOverstrike?: boolean;
   freeCursor?: boolean;
   showModifiedGutter?: boolean;
+  readOnly?: boolean;
 }
 
 const SYNTAX_KEYWORDS: Record<string, string[]> = {
@@ -122,6 +123,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
   isOverstrike = false,
   freeCursor = false,
   showModifiedGutter = true,
+  readOnly = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -366,6 +368,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
 
     const bridge = new InputBridge(container, {
       onInsertText: (text) => {
+        if (readOnly) return;
         if (selection) {
           if (selection.isBoxSelect && selection.boxStartCol !== undefined && selection.boxEndCol !== undefined) {
             buffer.deleteBox(selection.start.line, selection.end.line, selection.boxStartCol, selection.boxEndCol);
@@ -415,6 +418,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
         onContentChange();
       },
       onDeleteChar: (direction) => {
+        if (readOnly) return;
         if (selection) {
           if (selection.isBoxSelect && selection.boxStartCol !== undefined && selection.boxEndCol !== undefined) {
             buffer.deleteBox(selection.start.line, selection.end.line, selection.boxStartCol, selection.boxEndCol);

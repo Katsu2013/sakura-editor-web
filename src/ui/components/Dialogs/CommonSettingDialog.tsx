@@ -377,6 +377,20 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
     setTabFontDraft(settings.tabbar?.fontName || DEFAULT_COMMON_SETTINGS.tabbar.fontName);
   }, [settings, isOpen, initialTab]);
 
+  // メインメニュー操作ハンドラ用フラットツリー
+  const flatMenuTree = useMemo(() => {
+    const result: { id: string; label: string; isSeparator?: boolean; parentId?: string; isCategory?: boolean }[] = [];
+    data.mainMenu.tree.forEach((cat) => {
+      result.push({ id: cat.id, label: cat.label, isCategory: true });
+      if (menuExpandedAll && cat.children) {
+        cat.children.forEach((child) => {
+          result.push({ id: child.id, label: `  ${child.label}`, isSeparator: child.isSeparator, parentId: cat.id });
+        });
+      }
+    });
+    return result;
+  }, [data.mainMenu.tree, menuExpandedAll]);
+
   if (!isOpen) return null;
 
   // 現在アクティブなタブが属する行を特定し、その行が最下段（コンテンツと直結）になるよう並べ替え
@@ -628,20 +642,6 @@ export const CommonSettingDialog: React.FC<CommonSettingDialogProps> = ({
       setToolbarSelectedRightIdx(0);
     }
   };
-
-  // メインメニュー操作ハンドラ
-  const flatMenuTree = useMemo(() => {
-    const result: { id: string; label: string; isSeparator?: boolean; parentId?: string; isCategory?: boolean }[] = [];
-    data.mainMenu.tree.forEach((cat) => {
-      result.push({ id: cat.id, label: cat.label, isCategory: true });
-      if (menuExpandedAll && cat.children) {
-        cat.children.forEach((child) => {
-          result.push({ id: child.id, label: `  ${child.label}`, isSeparator: child.isSeparator, parentId: cat.id });
-        });
-      }
-    });
-    return result;
-  }, [data.mainMenu.tree, menuExpandedAll]);
 
   const handleMenuAdd = () => {
     const cmd = ALL_COMMANDS.find((c) => c.id === menuSelectedLeftCmd);
