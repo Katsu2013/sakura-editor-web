@@ -6,12 +6,7 @@ import { CanvasRenderer, type ViewportState } from '../../renderer/CanvasRendere
 import { FontMetrics, type FontMetricsInfo } from '../../renderer/FontMetrics';
 import { InputBridge } from '../../input/InputBridge';
 import type { Position, SelectionRange } from '../../core/buffer/types';
-import type { SyntaxRule } from '../../core/syntax/SyntaxHighlighter';
-import {
-  C_CPP_RULES,
-  JS_TS_RULES,
-  PYTHON_RULES,
-} from '../../core/syntax/SyntaxHighlighter';
+import { SyntaxHighlighter, type SyntaxRule } from '../../core/syntax/SyntaxHighlighter';
 import type { TypeSettingItem } from '../../core/config/TypeSettingsModel';
 import { BookmarkManager, BracketMatcher } from '../../core/navigation/BookmarkManager';
 import { ContextMenu, type ContextMenuItem } from './ContextMenu';
@@ -191,12 +186,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
 
   // シンタックスルール
   const getSyntaxRule = (): SyntaxRule | undefined => {
-    switch (settings.syntaxName) {
-      case 'C/C++': return C_CPP_RULES;
-      case 'JavaScript/TypeScript': return JS_TS_RULES;
-      case 'Python': return PYTHON_RULES;
-      default: return undefined;
-    }
+    return SyntaxHighlighter.getRuleByName(settings.syntaxName);
   };
 
   // 再描画トリガー

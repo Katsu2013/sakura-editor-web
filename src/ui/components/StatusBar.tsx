@@ -24,6 +24,7 @@ interface StatusBarProps {
   currentCharCode: string;
   isRecordingMacro?: boolean;
   zoomPercent?: number;
+  typeName?: string;
   config?: StatusBarConfig;
   onPositionClick?: () => void;
   onEncodingClick?: () => void;
@@ -31,6 +32,7 @@ interface StatusBarProps {
   onMacroRecClick?: () => void;
   onOverstrikeClick?: () => void;
   onZoomClick?: () => void;
+  onTypeClick?: () => void;
 }
 
 export const StatusBar: React.FC<StatusBarProps> = ({
@@ -45,6 +47,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   currentCharCode,
   isRecordingMacro = false,
   zoomPercent = 100,
+  typeName,
   config = {},
   onPositionClick,
   onEncodingClick,
@@ -52,6 +55,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   onMacroRecClick,
   onOverstrikeClick,
   onZoomClick,
+  onTypeClick,
 }) => {
   const encLabel = CharEncoding.getEncodingLabel(encoding);
 
@@ -94,6 +98,25 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           ? `総行数: ${totalLines}行`
           : ''}
       </div>
+
+      {/* 2. タイプ別設定名 (例: "C/C++", "HTML", "テキスト") */}
+      {typeName && (
+        <div
+          className="sakura-status-panel"
+          style={{
+            minWidth: '60px',
+            padding: '0 6px',
+            textAlign: 'center',
+            color: '#000000',
+            cursor: onTypeClick ? 'pointer' : 'default',
+            fontWeight: 500,
+          }}
+          onClick={onTypeClick}
+          title="クリックしてタイプ別設定一覧を開く"
+        >
+          {typeName}
+        </div>
+      )}
 
       {/* 2. 行・桁 (サクラエディタ標準: "1行  1桁") */}
       {showCursorPos && (

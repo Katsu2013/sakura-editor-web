@@ -4,7 +4,7 @@ import type { Position, SelectionRange } from '../core/buffer/types';
 import type { FontMetricsInfo } from './FontMetrics';
 import type { BookmarkManager } from '../core/navigation/BookmarkManager';
 import { SymbolRenderer } from './symbols';
-import { SyntaxHighlighter, type SyntaxRule } from '../core/syntax/SyntaxHighlighter';
+import { SyntaxHighlighter, type SyntaxRule, type Token, DocumentSyntaxStateTracker } from '../core/syntax/SyntaxHighlighter';
 import { SearchEngine, type SearchOptions } from '../core/search/SearchEngine';
 
 export interface ViewportState {
@@ -58,6 +58,9 @@ export class CanvasRenderer {
   private theme: EditorTheme = classicSakuraTheme;
   private gutterWidth: number = 32; // 行番号エリアの幅 (サクラエディタ準拠)
   private rulerHeight: number = 20; // 桁ルーラーの高さ
+  private syntaxTracker: DocumentSyntaxStateTracker = new DocumentSyntaxStateTracker();
+  private lastBuffer: TextBuffer | null = null;
+  private lastBufferVersion: number = -1;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -131,6 +134,13 @@ export class CanvasRenderer {
       this.canvas.height = height * dpr;
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // バッファ変更検知・構文状態キャッシュ無効化
+    if (buffer !== this.lastBuffer || buffer.getVersion() !== this.lastBufferVersion) {
+      this.syntaxTracker.reset();
+      this.lastBuffer = buffer;
+      this.lastBufferVersion = buffer.getVersion();
+    }
 
     // 1. エディタ全体背景クリア
     ctx.fillStyle = theme.background;
@@ -248,18 +258,38 @@ export class CanvasRenderer {
     ctx.font = `${fontSize}px ${fontFamily}`;
     ctx.textBaseline = 'alphabetic';
 
+    // 可視範囲内の論理行解析キャッシュ (折り返し行での重複解析を防ぎ、一貫したトークンを維持)
+    const logicalTokensMap = new Map<number, Token[]>();
+
     for (let r = firstVisualRow; r <= lastVisualRow; r++) {
       const span = lineMap.getSpan(r);
       if (!span) continue;
 
       const rowY = textAreaY + (r * lineHeight - scrollTop);
-      const lineText = buffer.getLine(span.logicalLine);
-      const subText = lineText.substring(span.startCharIndex, span.endCharIndex);
-      const tokens = SyntaxHighlighter.tokenizeLine(subText, syntaxRule);
+      const logicalLine = span.logicalLine;
+      const lineText = buffer.getLine(logicalLine);
 
-      // 各文字を描画
-      let charOffsetInSpan = 0;
-      for (const token of tokens) {
+      let logicalTokens = logicalTokensMap.get(logicalLine);
+      if (!logicalTokens) {
+        const inState = this.syntaxTracker.getInState(
+          logicalLine,
+          (idx) => buffer.getLine(idx),
+          buffer.getLineCount(),
+          syntaxRule
+        );
+        const res = SyntaxHighlighter.tokenizeLine(lineText, syntaxRule, inState);
+        logicalTokens = res.tokens;
+        logicalTokensMap.set(logicalLine, logicalTokens);
+      }
+
+      // この表示行スパン (span.startCharIndex 〜 span.endCharIndex) と交差するトークンを順次描画
+      for (const token of logicalTokens) {
+        if (token.end <= span.startCharIndex) continue;
+        if (token.start >= span.endCharIndex) break;
+
+        const overlapStart = Math.max(token.start, span.startCharIndex);
+        const overlapEnd = Math.min(token.end, span.endCharIndex);
+
         let tokenColor = theme.textColor;
         switch (token.type) {
           case 'keyword': tokenColor = theme.keywordColor; break;
@@ -269,11 +299,11 @@ export class CanvasRenderer {
           case 'url': tokenColor = theme.urlColor || '#0000ee'; break;
         }
 
-        const tokenStartOffset = charOffsetInSpan;
-        for (let ci = token.start; ci < token.end; ci++) {
-          const char = subText[ci];
-          const vCol = span.visualColumns[charOffsetInSpan] || 0;
-          const nextVCol = span.visualColumns[charOffsetInSpan + 1] || (vCol + 1);
+        for (let ci = overlapStart; ci < overlapEnd; ci++) {
+          const char = lineText[ci];
+          const localIdx = ci - span.startCharIndex;
+          const vCol = span.visualColumns[localIdx] || 0;
+          const nextVCol = span.visualColumns[localIdx + 1] || (vCol + 1);
           const charX = textAreaX + (vCol * charWidth - scrollLeft);
 
           // 全角空白記号
@@ -294,14 +324,14 @@ export class CanvasRenderer {
             ctx.fillStyle = tokenColor;
             ctx.fillText(char, charX, rowY + baseline);
           }
-
-          charOffsetInSpan++;
         }
 
         // URLトークンの下線描画 (サクラエディタ標準)
         if (token.type === 'url') {
-          const uStartVCol = span.visualColumns[tokenStartOffset] || 0;
-          const uEndVCol = span.visualColumns[charOffsetInSpan] || (uStartVCol + (token.end - token.start));
+          const startLocal = overlapStart - span.startCharIndex;
+          const endLocal = overlapEnd - span.startCharIndex;
+          const uStartVCol = span.visualColumns[startLocal] || 0;
+          const uEndVCol = span.visualColumns[endLocal] || (uStartVCol + (overlapEnd - overlapStart));
           const ux1 = textAreaX + (uStartVCol * charWidth - scrollLeft);
           const ux2 = textAreaX + (uEndVCol * charWidth - scrollLeft);
           ctx.strokeStyle = theme.urlColor || '#0000ee';

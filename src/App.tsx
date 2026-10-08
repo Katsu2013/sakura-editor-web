@@ -157,6 +157,7 @@ interface TabDoc {
   undoManager: UndoManager;
   diffMarks?: Map<number, 'add' | 'del' | 'mod'>;
   isReadOnly?: boolean;
+  typeSettingId?: string;
 }
 
 const SAMPLE_TEXT = `【サクラエディタ Web SPA 完全クローンへようこそ】🌸
@@ -272,18 +273,42 @@ export const App: React.FC = () => {
   const activeTypeSetting =
     typeSettingsList.find((t) => t.id === activeTypeId) || typeSettingsList[0];
 
-  // ファイル名からタイプ設定を自動判別
-  const detectTypeFromFilename = (filename: string): string => {
+  // ファイル名および内容からタイプ設定を自動判別
+  const detectTypeFromFilename = useCallback((filename: string, sampleContent?: string): string => {
     const ext = filename.split('.').pop()?.toLowerCase() || '';
-    if (!ext) return 'type-text';
-    for (const item of typeSettingsList) {
-      const extList = item.extensions.split(',').map((e) => e.trim().toLowerCase());
-      if (extList.includes(ext)) {
-        return item.id;
+    if (ext && ext !== filename.toLowerCase()) {
+      for (const item of typeSettingsList) {
+        const extList = item.extensions.split(',').map((e) => e.trim().toLowerCase());
+        if (extList.includes(ext)) {
+          return item.id;
+        }
       }
     }
+
+    // 拡張子がない、または無題ドキュメントの場合の内容ヒューリスティック判定
+    if (sampleContent) {
+      const trimmed = sampleContent.trimStart();
+      if (/^<!DOCTYPE\s+html/i.test(trimmed) || /^<html/i.test(trimmed) || /^<\?xml/i.test(trimmed)) return 'type-html';
+      if (/^<\?php/i.test(trimmed)) return 'type-php';
+      if (/^(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER)\s+/i.test(trimmed)) return 'type-plsql';
+      if (/^#include\s+[<"]/m.test(trimmed)) return 'type-cpp';
+      if (/^(import|export)\s+.*\s+from\s+['"]/m.test(trimmed) || /^(const|let|var|function)\s+/m.test(trimmed)) return 'type-ts';
+      if (/^(def\s+[a-zA-Z_]|class\s+[a-zA-Z_].*:|import\s+sys|import\s+os)/m.test(trimmed)) return 'type-python';
+      if (/^(\{|\[)/.test(trimmed)) {
+        try {
+          JSON.parse(sampleContent);
+          return 'type-json';
+        } catch {
+          // not valid json
+        }
+      }
+      if (/^#+\s+/m.test(trimmed)) return 'type-md';
+      if (/^(@echo\s+off|REM\s+|::)/im.test(trimmed)) return 'type-bat';
+      if (/^\[.+\]\s*$/m.test(trimmed)) return 'type-ini';
+    }
+
     return 'type-text';
-  };
+  }, [typeSettingsList]);
 
   // 検索ハイライト
   const [searchHighlight, setSearchHighlight] = useState<{
@@ -1024,9 +1049,11 @@ export const App: React.FC = () => {
       selection: null,
       bookmarkManager: new BookmarkManager(),
       undoManager: new UndoManager(),
+      typeSettingId: 'type-text',
     };
     setTabs((prev) => [...prev, newDoc]);
     setActiveTabId(newId);
+    setActiveTypeId('type-text');
     addRecentFile(newTitle);
   };
 
@@ -1037,10 +1064,25 @@ export const App: React.FC = () => {
       'HTML': '.html',
       'JavaScript/TypeScript': '.ts',
       'Python': '.py',
+      'SQL': '.sql',
+      'Java': '.java',
+      'C#': '.cs',
+      'PHP': '.php',
+      'CSS': '.css',
+      'JSON': '.json',
+      'Markdown': '.md',
+      'Go': '.go',
+      'Rust': '.rs',
+      'Ruby': '.rb',
+      'Shell': '.sh',
+      'PowerShell': '.ps1',
+      'Batch': '.bat',
+      'INI': '.ini',
     };
     const ext = extMap[syntax] || '.txt';
     const newId = `tab-${Date.now()}`;
     const newTitle = `(無題)${tabs.length + 1}${ext}`;
+    const detectedTypeId = detectTypeFromFilename(newTitle);
     const newDoc: TabDoc = {
       id: newId,
       title: newTitle,
@@ -1052,10 +1094,11 @@ export const App: React.FC = () => {
       selection: null,
       bookmarkManager: new BookmarkManager(),
       undoManager: new UndoManager(),
+      typeSettingId: detectedTypeId,
     };
     setTabs((prev) => [...prev, newDoc]);
     setActiveTabId(newId);
-    setActiveTypeId(detectTypeFromFilename(newTitle));
+    setActiveTypeId(detectedTypeId);
     addRecentFile(newTitle);
   };
 
@@ -1147,6 +1190,7 @@ export const App: React.FC = () => {
     const existing = tabs.find((t) => t.title.toLowerCase() === targetTitle.toLowerCase());
     if (existing) {
       setActiveTabId(existing.id);
+      setActiveTypeId(existing.typeSettingId || detectTypeFromFilename(existing.title, existing.buffer.getText()));
     } else {
       const newId = `tab-${Date.now()}`;
       const newDoc: TabDoc = {
@@ -1160,12 +1204,13 @@ export const App: React.FC = () => {
         selection: null,
         bookmarkManager: new BookmarkManager(),
         undoManager: new UndoManager(),
+        typeSettingId: 'type-cpp',
       };
       setTabs((prev) => [...prev, newDoc]);
       setActiveTabId(newId);
-      setActiveTypeId('type-c-cpp');
+      setActiveTypeId('type-cpp');
     }
-  }, [currentDoc, tabs, setActiveTabId, setActiveTypeId]);
+  }, [currentDoc, tabs, setActiveTabId, setActiveTypeId, detectTypeFromFilename]);
 
   // ファイルを開く
   const handleOpen = async () => {
@@ -1185,6 +1230,7 @@ export const App: React.FC = () => {
         const decoded = CharEncoding.decode(rawBytes);
 
         const newId = `tab-${Date.now()}`;
+        const detectedTypeId = detectTypeFromFilename(file.name, decoded.text);
         const newDoc: TabDoc = {
           id: newId,
           title: file.name,
@@ -1198,10 +1244,11 @@ export const App: React.FC = () => {
           selection: null,
           bookmarkManager: new BookmarkManager(),
           undoManager: new UndoManager(),
+          typeSettingId: detectedTypeId,
         };
         setTabs((prev) => [...prev, newDoc]);
         setActiveTabId(newId);
-        setActiveTypeId(detectTypeFromFilename(file.name));
+        setActiveTypeId(detectedTypeId);
         addRecentFile(file.name);
       } else {
         const input = document.createElement('input');
@@ -1213,6 +1260,7 @@ export const App: React.FC = () => {
           const rawBytes = new Uint8Array(arrayBuf);
           const decoded = CharEncoding.decode(rawBytes);
           const newId = `tab-${Date.now()}`;
+          const detectedTypeId = detectTypeFromFilename(file.name, decoded.text);
           const newDoc: TabDoc = {
             id: newId,
             title: file.name,
@@ -1225,10 +1273,11 @@ export const App: React.FC = () => {
             selection: null,
             bookmarkManager: new BookmarkManager(),
             undoManager: new UndoManager(),
+            typeSettingId: detectedTypeId,
           };
           setTabs((prev) => [...prev, newDoc]);
           setActiveTabId(newId);
-          setActiveTypeId(detectTypeFromFilename(file.name));
+          setActiveTypeId(detectedTypeId);
           addRecentFile(file.name);
         };
         input.click();
@@ -2835,6 +2884,7 @@ export const App: React.FC = () => {
             const idx = tabs.findIndex((t) => t.id === activeTabId);
             const next = tabs[(idx + 1) % tabs.length];
             setActiveTabId(next.id);
+            setActiveTypeId(next.typeSettingId || detectTypeFromFilename(next.title, next.buffer.getText()));
           },
         },
         {
@@ -2846,6 +2896,7 @@ export const App: React.FC = () => {
             const idx = tabs.findIndex((t) => t.id === activeTabId);
             const prev = tabs[(idx - 1 + tabs.length) % tabs.length];
             setActiveTabId(prev.id);
+            setActiveTypeId(prev.typeSettingId || detectTypeFromFilename(prev.title, prev.buffer.getText()));
           },
         },
         { id: 'close-tab-win', label: '閉じる', shortcut: 'Ctrl+W', icon: <CloseIcon size={16} />, action: () => handleCloseTab(activeTabId) },
@@ -2856,7 +2907,7 @@ export const App: React.FC = () => {
           checked: tab.id === activeTabId,
           action: () => {
             setActiveTabId(tab.id);
-            setActiveTypeId(detectTypeFromFilename(tab.title));
+            setActiveTypeId(tab.typeSettingId || detectTypeFromFilename(tab.title, tab.buffer.getText()));
           },
         })),
       ],
@@ -2979,7 +3030,7 @@ export const App: React.FC = () => {
             setActiveTabId(id);
             const doc = tabs.find((t) => t.id === id);
             if (doc) {
-              setActiveTypeId(detectTypeFromFilename(doc.title));
+              setActiveTypeId(doc.typeSettingId || detectTypeFromFilename(doc.title, doc.buffer.getText()));
             }
           }}
           onCloseTab={handleCloseTab}
@@ -3013,7 +3064,7 @@ export const App: React.FC = () => {
           onSelectTab={(id) => {
             setActiveTabId(id);
             const doc = tabs.find((t) => t.id === id);
-            if (doc) setActiveTypeId(detectTypeFromFilename(doc.title));
+            if (doc) setActiveTypeId(doc.typeSettingId || detectTypeFromFilename(doc.title, doc.buffer.getText()));
           }}
           bookmarkedLines={currentDoc.bookmarkManager.getBookmarkedLines()}
           onJumpToLine={(line) => updateCurrentDoc((d) => ({ ...d, cursor: { line: line - 1, column: 0 } }))}
@@ -3344,7 +3395,7 @@ export const App: React.FC = () => {
             setActiveTabId(id);
             const doc = tabs.find((t) => t.id === id);
             if (doc) {
-              setActiveTypeId(detectTypeFromFilename(doc.title));
+              setActiveTypeId(doc.typeSettingId || detectTypeFromFilename(doc.title, doc.buffer.getText()));
             }
           }}
           onCloseTab={handleCloseTab}
@@ -3420,6 +3471,8 @@ export const App: React.FC = () => {
               prev === 100 ? 125 : prev === 125 ? 150 : prev === 150 ? 200 : prev === 200 ? 50 : prev === 50 ? 75 : 100
             )
           }
+          typeName={activeTypeSetting.name}
+          onTypeClick={() => setIsTypeListOpen(true)}
         />
       )}
 
@@ -3440,7 +3493,10 @@ export const App: React.FC = () => {
         typeSettingsList={typeSettingsList}
         activeTypeId={activeTypeId}
         onClose={() => setIsTypeListOpen(false)}
-        onSelectType={(id) => setActiveTypeId(id)}
+        onSelectType={(id) => {
+          setActiveTypeId(id);
+          updateCurrentDoc((doc) => ({ ...doc, typeSettingId: id }));
+        }}
         onEditType={(item) => {
           setEditingTypeItem(item);
           setTypeSettingInitialTab('screen');

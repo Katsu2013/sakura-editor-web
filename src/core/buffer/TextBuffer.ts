@@ -10,13 +10,19 @@ export class TextBuffer {
   private lineEndings: LineEnding[] = [];
   private defaultLineEnding: LineEnding = 'CRLF';
   private modifiedLines: Set<number> = new Set();
+  private version: number = 0;
 
   constructor(initialText: string = '', defaultLineEnding: LineEnding = 'CRLF') {
     this.defaultLineEnding = defaultLineEnding;
     this.setText(initialText);
   }
 
+  public getVersion(): number {
+    return this.version;
+  }
+
   public setText(text: string): void {
+    this.version++;
     this.modifiedLines.clear();
 
     // 改行コード（CRLF, LF, CR）の検出と行分割
@@ -131,6 +137,7 @@ export class TextBuffer {
     // テキストを行分割（正規表現）
     const insertLines = text.split(/\r\n|\r|\n/);
 
+    this.version++;
     this.modifiedLines.add(lineIdx);
 
     if (insertLines.length === 1) {
@@ -166,6 +173,7 @@ export class TextBuffer {
    * 範囲削除
    */
   public deleteRange(range: SelectionRange): { deletedText: string; newPos: Position } {
+    this.version++;
     let { start, end } = range;
     if (start.line > end.line || (start.line === end.line && start.column > end.column)) {
       const temp = start;
@@ -216,6 +224,7 @@ export class TextBuffer {
    * 矩形削除 (Box Delete)
    */
   public deleteBox(startLine: number, endLine: number, startCol: number, endCol: number): string {
+    this.version++;
     const sLine = Math.min(startLine, endLine);
     const eLine = Math.max(startLine, endLine);
     const sCol = Math.min(startCol, endCol);
@@ -242,6 +251,7 @@ export class TextBuffer {
    * 矩形挿入 (Box Insert)
    */
   public insertBox(startLine: number, endLine: number, col: number, textLines: string[]): void {
+    this.version++;
     const sLine = Math.min(startLine, endLine);
     const eLine = Math.max(startLine, endLine);
 
@@ -260,6 +270,7 @@ export class TextBuffer {
 
   public replaceLine(lineNumber: number, text: string): void {
     if (lineNumber >= 0 && lineNumber < this.lines.length) {
+      this.version++;
       this.lines[lineNumber] = text;
       this.modifiedLines.add(lineNumber);
     }
@@ -267,6 +278,7 @@ export class TextBuffer {
 
   public deleteLines(lineIndices: number[]): void {
     if (lineIndices.length === 0) return;
+    this.version++;
     const toDelete = new Set(lineIndices);
     const newLines: string[] = [];
     const newEndings: LineEnding[] = [];
