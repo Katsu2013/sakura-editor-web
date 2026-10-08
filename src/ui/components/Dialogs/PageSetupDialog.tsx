@@ -1,38 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PrintIcon } from '../Icons/SakuraIcons';
+import {
+  type PageSetupSettings,
+  DEFAULT_PAGE_SETUP_SETTINGS,
+} from '../../../core/print/PrintEngine';
 
 interface PageSetupDialogProps {
   isOpen: boolean;
+  settings?: PageSetupSettings;
   onClose: () => void;
   onApply?: (settings: PageSetupSettings) => void;
 }
 
-export interface PageSetupSettings {
-  paperSize: string;
-  orientation: 'portrait' | 'landscape';
-  marginTop: number;
-  marginBottom: number;
-  marginLeft: number;
-  marginRight: number;
-  showLineNumbers: boolean;
-  headerText: string;
-  footerText: string;
-}
+export type { PageSetupSettings };
 
 export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({
   isOpen,
+  settings = DEFAULT_PAGE_SETUP_SETTINGS,
   onClose,
   onApply,
 }) => {
-  const [paperSize, setPaperSize] = useState('A4');
-  const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
-  const [marginTop, setMarginTop] = useState(20);
-  const [marginBottom, setMarginBottom] = useState(20);
-  const [marginLeft, setMarginLeft] = useState(15);
-  const [marginRight, setMarginRight] = useState(15);
-  const [showLineNumbers, setShowLineNumbers] = useState(true);
-  const [headerText, setHeaderText] = useState('&f');
-  const [footerText, setFooterText] = useState('&p / &P ページ');
+  const [paperSize, setPaperSize] = useState(settings.paperSize);
+  const [orientation, setOrientation] = useState<'portrait' | 'landscape'>(settings.orientation);
+  const [marginTop, setMarginTop] = useState(settings.marginTop);
+  const [marginBottom, setMarginBottom] = useState(settings.marginBottom);
+  const [marginLeft, setMarginLeft] = useState(settings.marginLeft);
+  const [marginRight, setMarginRight] = useState(settings.marginRight);
+  const [showLineNumbers, setShowLineNumbers] = useState(settings.showLineNumbers);
+  const [headerText, setHeaderText] = useState(settings.headerText);
+  const [footerText, setFooterText] = useState(settings.footerText);
+
+  useEffect(() => {
+    if (isOpen) {
+      setPaperSize(settings.paperSize);
+      setOrientation(settings.orientation);
+      setMarginTop(settings.marginTop);
+      setMarginBottom(settings.marginBottom);
+      setMarginLeft(settings.marginLeft);
+      setMarginRight(settings.marginRight);
+      setShowLineNumbers(settings.showLineNumbers);
+      setHeaderText(settings.headerText);
+      setFooterText(settings.footerText);
+    }
+  }, [isOpen, settings]);
 
   if (!isOpen) return null;
 

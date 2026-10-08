@@ -30,6 +30,8 @@ import { FilePropertyDialog } from './ui/components/Dialogs/FilePropertyDialog';
 import { PageSetupDialog } from './ui/components/Dialogs/PageSetupDialog';
 import { ExternalToolDialog } from './ui/components/Dialogs/ExternalToolDialog';
 import { PrintPreviewDialog } from './ui/components/Dialogs/PrintPreviewDialog';
+import { PrintDocument } from './ui/components/PrintDocument';
+import { type PageSetupSettings, DEFAULT_PAGE_SETUP_SETTINGS } from './core/print/PrintEngine';
 import { CommandListDialog } from './ui/components/Dialogs/CommandListDialog';
 import { FontDialog } from './ui/components/Dialogs/FontDialog';
 import { IncrementalSearchBar } from './ui/components/IncrementalSearchBar';
@@ -309,6 +311,7 @@ export const App: React.FC = () => {
   const [isGrepReplaceMode, setIsGrepReplaceMode] = useState(false);
   const [zoomPercent, setZoomPercent] = useState<number>(100);
   const [commonSettings, setCommonSettings] = useState<CommonSettingsModel>(DEFAULT_COMMON_SETTINGS);
+  const [pageSetup, setPageSetup] = useState<PageSetupSettings>(DEFAULT_PAGE_SETUP_SETTINGS);
 
   // インクリメンタルサーチ状態
   const [isIncSearchOpen, setIsIncSearchOpen] = useState(false);
@@ -3207,7 +3210,9 @@ export const App: React.FC = () => {
 
       <PageSetupDialog
         isOpen={isPageSetupOpen}
+        settings={pageSetup}
         onClose={() => setIsPageSetupOpen(false)}
+        onApply={(newSettings) => setPageSetup(newSettings)}
       />
 
       <ExternalToolDialog
@@ -3317,7 +3322,17 @@ export const App: React.FC = () => {
         onClose={() => setIsPrintPreviewOpen(false)}
         buffer={currentDoc.buffer}
         title={currentDoc.title}
+        pageSetup={pageSetup}
         wrapColumn={activeTypeSetting.wrapConfig.wrapColumn}
+      />
+
+      <PrintDocument
+        buffer={currentDoc.buffer}
+        title={currentDoc.title}
+        pageSetup={pageSetup}
+        wrapColumn={activeTypeSetting.wrapConfig.wrapColumn}
+        fontFamily={activeTypeSetting.fontFamily}
+        fontSize={activeTypeSetting.fontSize}
       />
 
       <CommandListDialog

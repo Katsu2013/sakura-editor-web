@@ -1,12 +1,19 @@
 import React, { useState, useMemo } from 'react';
-import { TextBuffer } from '../../../core/buffer/TextBuffer';
+import type { TextBuffer } from '../../../core/buffer/TextBuffer';
 import { PrintIcon, CloseIcon } from '../Icons/SakuraIcons';
+import {
+  type PageSetupSettings,
+  DEFAULT_PAGE_SETUP_SETTINGS,
+  calculatePrintPages,
+  formatHeaderFooter,
+} from '../../../core/print/PrintEngine';
 
 interface PrintPreviewDialogProps {
   isOpen: boolean;
   onClose: () => void;
   buffer: TextBuffer;
   title: string;
+  pageSetup?: PageSetupSettings;
   wrapColumn?: number;
   fontFamily?: string;
   fontSize?: number;
@@ -17,47 +24,19 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({
   onClose,
   buffer,
   title,
-  wrapColumn = 80,
-  fontFamily = '"MS Gothic", monospace',
-  fontSize = 13,
+  pageSetup = DEFAULT_PAGE_SETUP_SETTINGS,
+  wrapColumn,
+  fontFamily = '"MS Gothic", "BIZ UDGothic", "Courier New", monospace',
+  fontSize = 12,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isTwoPage, setIsTwoPage] = useState(false);
   const [zoom, setZoom] = useState<number>(100);
 
-  // 1ページあたりの行数
-  const LINES_PER_PAGE = 52;
-
-  // 全行の折り返し展開とページ分割
+  // 全行の折り返し展開とページ分割 (PrintEngine と同一ロジック)
   const pages = useMemo(() => {
-    const rawLines = buffer.getText().split(/\r\n|\r|\n/);
-    const wrapped: { lineNum: number; text: string }[] = [];
-
-    rawLines.forEach((line, idx) => {
-      if (line.length <= wrapColumn) {
-        wrapped.push({ lineNum: idx + 1, text: line });
-      } else {
-        let first = true;
-        for (let i = 0; i < line.length; i += wrapColumn) {
-          wrapped.push({
-            lineNum: first ? idx + 1 : 0, // 0 は折り返し行
-            text: line.slice(i, i + wrapColumn),
-          });
-          first = false;
-        }
-      }
-    });
-
-    const pageList: { lineNum: number; text: string }[][] = [];
-    for (let i = 0; i < wrapped.length; i += LINES_PER_PAGE) {
-      pageList.push(wrapped.slice(i, i + LINES_PER_PAGE));
-    }
-
-    if (pageList.length === 0) {
-      pageList.push([]);
-    }
-    return pageList;
-  }, [buffer, wrapColumn]);
+    return calculatePrintPages(buffer.getText(), pageSetup, wrapColumn);
+  }, [buffer, pageSetup, wrapColumn]);
 
   if (!isOpen) return null;
 
@@ -65,23 +44,33 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({
   const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
 
   const handlePrint = () => {
+    // 印刷ダイアログを起動 (@media print により本プレビュー画面は不可視化され、印刷用ページが出力される)
     window.print();
   };
 
+  const isLandscape = pageSetup.orientation === 'landscape';
+  const pageWidthPx = isLandscape ? 960 : 680;
+  const pageMinHeightPx = isLandscape ? 680 : 960;
+
   const renderSinglePage = (pageIndex: number) => {
     const pageLines = pages[pageIndex] || [];
-    const dateStr = new Date().toLocaleDateString('ja-JP');
+    const headerLeft = formatHeaderFooter(pageSetup.headerText, pageIndex + 1, totalPages, title);
+    const headerRight = formatHeaderFooter('&d &t', pageIndex + 1, totalPages, title);
+    const footerCenter = formatHeaderFooter(pageSetup.footerText, pageIndex + 1, totalPages, title);
 
     return (
       <div
         key={pageIndex}
         style={{
-          width: '680px',
-          minHeight: '960px',
+          width: `${pageWidthPx}px`,
+          minHeight: `${pageMinHeightPx}px`,
           backgroundColor: '#ffffff',
           boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
           margin: '16px auto',
-          padding: '40px 48px',
+          paddingTop: `${Math.max(20, pageSetup.marginTop * 1.5)}px`,
+          paddingBottom: `${Math.max(20, pageSetup.marginBottom * 1.5)}px`,
+          paddingLeft: `${Math.max(20, pageSetup.marginLeft * 1.5)}px`,
+          paddingRight: `${Math.max(20, pageSetup.marginRight * 1.5)}px`,
           display: 'flex',
           flexDirection: 'column',
           boxSizing: 'border-box',
@@ -104,29 +93,33 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({
             borderBottom: '1px solid #999999',
             paddingBottom: '4px',
             marginBottom: '16px',
+            fontFamily: '"MS UI Gothic", "Meiryo", sans-serif',
           }}
         >
-          <span>{title}</span>
-          <span>{dateStr}</span>
+          <span>{headerLeft}</span>
+          <span>{headerRight}</span>
         </div>
 
         {/* 本文エリア */}
         <div style={{ flex: 1, whiteSpace: 'pre', overflow: 'hidden' }}>
           {pageLines.map((item, idx) => (
             <div key={idx} style={{ display: 'flex', height: '17px', lineHeight: '17px' }}>
-              <span
-                style={{
-                  width: '45px',
-                  textAlign: 'right',
-                  paddingRight: '12px',
-                  color: '#666666',
-                  userSelect: 'none',
-                  fontSize: '11px',
-                }}
-              >
-                {item.lineNum > 0 ? item.lineNum : ''}
-              </span>
-              <span style={{ flex: 1 }}>{item.text}</span>
+              {pageSetup.showLineNumbers && (
+                <span
+                  style={{
+                    width: '45px',
+                    textAlign: 'right',
+                    paddingRight: '12px',
+                    color: '#666666',
+                    userSelect: 'none',
+                    fontSize: '11px',
+                    flexShrink: 0,
+                  }}
+                >
+                  {item.lineNum > 0 ? item.lineNum : ''}
+                </span>
+              )}
+              <span style={{ flex: 1, wordBreak: 'break-all' }}>{item.text || '\u00A0'}</span>
             </div>
           ))}
         </div>
@@ -140,9 +133,10 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({
             borderTop: '1px solid #999999',
             paddingTop: '6px',
             marginTop: '16px',
+            fontFamily: '"MS UI Gothic", "Meiryo", sans-serif',
           }}
         >
-          - {pageIndex + 1} -
+          {footerCenter}
         </div>
       </div>
     );
@@ -150,6 +144,7 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({
 
   return (
     <div
+      className="sakura-preview-overlay"
       style={{
         position: 'fixed',
         top: 0,
@@ -179,7 +174,7 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({
       >
         <button
           onClick={handlePrint}
-          className="sakura-btn"
+          className="sakura-dialog-btn primary"
           style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}
         >
           <PrintIcon size={14} />
@@ -191,14 +186,14 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({
         <button
           disabled={safeCurrentPage <= 1}
           onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-          className="sakura-btn"
+          className="sakura-dialog-btn"
         >
           前のページ(P)
         </button>
         <button
           disabled={safeCurrentPage >= totalPages}
           onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-          className="sakura-btn"
+          className="sakura-dialog-btn"
         >
           次のページ(N)
         </button>
@@ -211,7 +206,7 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({
 
         <button
           onClick={() => setIsTwoPage((p) => !p)}
-          className={`sakura-btn ${isTwoPage ? 'active' : ''}`}
+          className={`sakura-dialog-btn ${isTwoPage ? 'active' : ''}`}
         >
           {isTwoPage ? '1ページ表示(1)' : '2ページ表示(2)'}
         </button>
@@ -237,11 +232,15 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({
           </select>
         </div>
 
+        <span style={{ fontSize: '11px', color: '#555', marginLeft: '6px' }}>
+          ({pageSetup.paperSize} / {isLandscape ? '横' : '縦'} / 余白: 上下{pageSetup.marginTop}mm 左右{pageSetup.marginLeft}mm)
+        </span>
+
         <div style={{ flex: 1 }} />
 
         <button
           onClick={onClose}
-          className="sakura-btn"
+          className="sakura-dialog-btn"
           style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
         >
           <CloseIcon size={14} />

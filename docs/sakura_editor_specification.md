@@ -29,7 +29,7 @@
 | **バックアップ管理** | ローカルフォルダーへの世代バックアップ自動保存 | `PlatformService.saveBackup` (ブラウザ内仮想ストレージ自動退避 + バックアップ一覧・復元ダイアログ) |
 | **外部コマンド実行** | OS `CreateProcess` によるローカル `.exe` 任意実行 | 外部コマンド設定・パラメーター置換・標準入出力GUI完全装備。ローカル実行はブラウザ制限のため Web API / Sidecar 連携インターフェースとして動作 |
 | **Ctags / タグジャンプ** | `ctags.exe` 外部プロセス呼び出しによる tags ファイル生成 | インメモリ正規表現シンボル解析エンジン + tags 互換パーサー |
-| **印刷** | Windows プリンタドライバ GDI DC レンダリング | Canvas 2D 改ページプレビュー + ブラウザ標準 `window.print()` |
+| **印刷** | Windows プリンタドライバ GDI DC レンダリング | `PrintEngine` + `PrintDocument` ポータル + `@media print` 独立描画 (アプリUI・プレビューダイアログ完全遮断 & 物理用紙レイアウト出力) |
 | **ファイル / フォルダー I/O** | Win32 `CreateFile` によるローカルファイル任意パス直読み書き | `PlatformService` 抽象化 (File System Access API / Blob API / `<input type="file">` / Tauriフック) |
 
 ### 1.4 プラットフォーム抽象化レイヤー (PlatformService) と Tauri / Web デュアルターゲット設計
@@ -55,6 +55,22 @@ flowchart TD
    - 登録マクロはブラウザ内コードキャッシュと連携し、メニューやショートカットから即時実行できます。
 2. **Tauri デスクトップ版への発展性 (計画B準備)**:
    - 将来 Tauri を導入する際もフロントエンドのコード変更は不要であり、`PlatformService.isTauri()` の分岐先で Tauri の Rust ネイティブプラグイン (`@tauri-apps/plugin-fs`, `@tauri-apps/plugin-dialog`) を呼び出すだけで、軽量なネイティブデスクトップアプリとしてビルド可能です。
+
+### 1.5 印刷エンジン (PrintEngine) & 印刷専用レイアウト設計
+Webブラウザで直接 `window.print()` を呼ぶと、通常は画面上のUI（タイトルバー、メニューバー、ツールバー、エディタキャンバス、またはプレビューモーダル自体）がそのまま紙面に印刷されてしまいます。
+本システムでは、サクラエディタの実機同様に**「文書本文のみを用紙設定に従って整形・改ページして印刷する」**ため、以下のアーキテクチャを実装しています。
+
+1. **画面表示 (`@media screen`) と印刷 (`@media print`) の完全分離**:
+   - `@media print` 下において、エディタ本体UI（`#root`）およびすべてのモーダル・プレビューダイアログ（`.sakura-dialog-overlay`, `.sakura-preview-overlay`）に `display: none !important;` を適用し、画面装飾を完全に遮断。
+   - `document.body` 直下の専用印刷コンテナ (`#sakura-print-area`) のみを `display: block !important;` で展開。
+2. **ページ分割・マクロ置換エンジン (`PrintEngine.ts`)**:
+   - `PageSetupSettings`（用紙サイズ A4/B5/Letter、向き 縦/横、上下左右余白mm、行番号有無、ヘッダー/フッター書式）に準拠。
+   - サクラエディタ標準マクロ文字列（`&f`: ファイル名、`&p`: ページ番号、`&P`: 総ページ数、`&d`: 日付、`&t`: 時刻、`&w`: 曜日）を動的置換。
+   - 東アジア文字幅（East Asian Width）を考慮した高精度禁則折り返し計算を行い、物理用紙の1ページあたり行数を厳密に計算。
+3. **印刷プレビュー (`PrintPreviewDialog`) と印刷出力の一致保証**:
+   - プレビュー画面の各ページレンダリングと、プリンタへ送出される `PrintDocument` のページ構造が同一の `calculatePrintPages` アルゴリズムを共有し、プレビューで見たままのレイアウトがそのまま紙やPDFに出力されます。
+
+### 1.6 システム全体アーキテクチャ図
 ```mermaid
 flowchart TD
     subgraph UI_Shell["UI & シェル層 (React + Win32 Classic Theme)"]

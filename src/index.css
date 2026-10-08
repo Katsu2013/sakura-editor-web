@@ -1,47 +1,189 @@
 /* サクラエディタ Web SPA - リセット & フルスクリーン スタイル */
-html, body {
-  margin: 0 !important;
-  padding: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  max-width: none !important;
-  max-height: none !important;
-  overflow: hidden !important;
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  background-color: #f0f0f0;
-  font-family: 'MS UI Gothic', 'Segoe UI', Tahoma, sans-serif;
-  user-select: none;
-  box-sizing: border-box !important;
-}
-
-#root {
-  margin: 0 !important;
-  padding: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  max-width: none !important;
-  max-height: none !important;
-  border: none !important;
-  overflow: hidden !important;
-  box-sizing: border-box !important;
-  background-color: #f0f0f0;
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
 
 *, *::before, *::after {
   box-sizing: inherit;
+}
+
+/* ==================== 画面表示時スタイル (@media screen) ==================== */
+@media screen {
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background-color: #f0f0f0;
+    font-family: 'MS UI Gothic', 'Segoe UI', Tahoma, sans-serif;
+    user-select: none;
+    box-sizing: border-box !important;
+  }
+
+  #root {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    border: none !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    background-color: #f0f0f0;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* 画面上では印刷用エリアを完全不可視化 */
+  #sakura-print-area {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}
+
+/* ==================== 印刷時スタイル (@media print) ==================== */
+@media print {
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    user-select: text !important;
+    box-sizing: border-box !important;
+  }
+
+  /* エディタ本体UI・ツールバー・メニュー・ダイアログ・プレビュー画面を完全非表示 */
+  #root,
+  .sakura-dialog-overlay,
+  .sakura-preview-overlay,
+  .sakura-menu-bar,
+  .sakura-toolbar,
+  .sakura-tabbar,
+  .sakura-statusbar,
+  .sakura-function-key-bar {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* 印刷専用エリアのみを表示 */
+  #sakura-print-area {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .sakura-print-container {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* 1ページあたりの物理用紙コンテナ */
+  .sakura-print-page {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    min-height: 100vh !important;
+    box-sizing: border-box !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .sakura-print-page:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  /* ヘッダー */
+  .sakura-print-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    font-size: 8.5pt !important;
+    color: #333333 !important;
+    border-bottom: 0.5pt solid #555555 !important;
+    padding-bottom: 2mm !important;
+    margin-bottom: 4mm !important;
+    font-family: 'MS UI Gothic', 'Meiryo', sans-serif !important;
+  }
+
+  /* 本文 */
+  .sakura-print-body {
+    flex: 1 !important;
+    overflow: hidden !important;
+    font-family: 'MS Gothic', 'BIZ UDGothic', monospace !important;
+  }
+
+  .sakura-print-line {
+    display: flex !important;
+    height: 4.8mm !important;
+    line-height: 4.8mm !important;
+    align-items: baseline !important;
+  }
+
+  .sakura-print-linenum {
+    display: inline-block !important;
+    width: 45px !important;
+    text-align: right !important;
+    padding-right: 12px !important;
+    color: #666666 !important;
+    user-select: none !important;
+    font-size: 8.5pt !important;
+    flex-shrink: 0 !important;
+  }
+
+  .sakura-print-text {
+    flex: 1 !important;
+    white-space: pre-wrap !important;
+    word-break: break-all !important;
+    font-size: 10pt !important;
+    color: #000000 !important;
+  }
+
+  /* フッター */
+  .sakura-print-footer {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    font-size: 8.5pt !important;
+    color: #333333 !important;
+    border-top: 0.5pt solid #555555 !important;
+    padding-top: 2mm !important;
+    margin-top: 4mm !important;
+    font-family: 'MS UI Gothic', 'Meiryo', sans-serif !important;
+  }
 }
