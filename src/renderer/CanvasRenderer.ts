@@ -6,6 +6,7 @@ import type { BookmarkManager } from '../core/navigation/BookmarkManager';
 import { SymbolRenderer } from './symbols';
 import { SyntaxHighlighter, type SyntaxRule, type Token, DocumentSyntaxStateTracker } from '../core/syntax/SyntaxHighlighter';
 import { SearchEngine, type SearchOptions } from '../core/search/SearchEngine';
+import type { ColorItemSetting } from '../core/config/TypeSettingsModel';
 
 export interface ViewportState {
   scrollTop: number;
@@ -118,7 +119,8 @@ export class CanvasRenderer {
       lineSpacing: 2,
       showModifiedGutter: true,
     },
-    diffMarks?: Map<number, 'add' | 'del' | 'mod'>
+    diffMarks?: Map<number, 'add' | 'del' | 'mod'>,
+    colorSettings?: Record<string, ColorItemSetting>
   ): void {
     const { ctx, theme } = this;
     const { width, height, scrollTop, scrollLeft } = viewport;
@@ -291,13 +293,42 @@ export class CanvasRenderer {
         const overlapEnd = Math.min(token.end, span.endCharIndex);
 
         let tokenColor = theme.textColor;
-        switch (token.type) {
-          case 'keyword': tokenColor = theme.keywordColor; break;
-          case 'comment': tokenColor = theme.commentColor; break;
-          case 'string': tokenColor = theme.stringColor; break;
-          case 'number': tokenColor = theme.numberColor; break;
-          case 'url': tokenColor = theme.urlColor || '#0000ee'; break;
+        let tokenBg: string | undefined = undefined;
+        let isBold = false;
+        let isUnderline = false;
+
+        const colorItem = colorSettings ? colorSettings[token.type] : undefined;
+        if (colorItem && colorItem.show === false) {
+          // 色分け/表示が OFF の場合は通常本文色で描画
+          tokenColor = colorSettings?.text?.fg || theme.textColor;
+        } else if (colorItem) {
+          tokenColor = colorItem.fg || theme.textColor;
+          tokenBg = colorItem.bg;
+          isBold = !!colorItem.bold;
+          isUnderline = !!colorItem.underline;
+        } else {
+          switch (token.type) {
+            case 'keyword': tokenColor = theme.keywordColor; break;
+            case 'comment': tokenColor = theme.commentColor; break;
+            case 'string': tokenColor = theme.stringColor; break;
+            case 'number': tokenColor = theme.numberColor; break;
+            case 'url': tokenColor = theme.urlColor || '#0000ee'; isUnderline = true; break;
+          }
         }
+
+        // トークン専用背景色 (設定されている場合)
+        if (tokenBg && tokenBg.toLowerCase() !== theme.background.toLowerCase() && tokenBg.toLowerCase() !== '#ffffef') {
+          const startLocal = overlapStart - span.startCharIndex;
+          const endLocal = overlapEnd - span.startCharIndex;
+          const tStartVCol = span.visualColumns[startLocal] || 0;
+          const tEndVCol = span.visualColumns[endLocal] || (tStartVCol + (overlapEnd - overlapStart));
+          const tx1 = textAreaX + (tStartVCol * charWidth - scrollLeft);
+          const tx2 = textAreaX + (tEndVCol * charWidth - scrollLeft);
+          ctx.fillStyle = tokenBg;
+          ctx.fillRect(tx1, rowY, Math.max(1, tx2 - tx1), lineHeight);
+        }
+
+        ctx.font = `${isBold ? 'bold ' : ''}${fontSize}px ${fontFamily}`;
 
         for (let ci = overlapStart; ci < overlapEnd; ci++) {
           const char = lineText[ci];
@@ -326,15 +357,15 @@ export class CanvasRenderer {
           }
         }
 
-        // URLトークンの下線描画 (サクラエディタ標準)
-        if (token.type === 'url') {
+        // 下線描画 (URL またはカラー設定で下線指定されている場合)
+        if (isUnderline || token.type === 'url') {
           const startLocal = overlapStart - span.startCharIndex;
           const endLocal = overlapEnd - span.startCharIndex;
           const uStartVCol = span.visualColumns[startLocal] || 0;
           const uEndVCol = span.visualColumns[endLocal] || (uStartVCol + (overlapEnd - overlapStart));
           const ux1 = textAreaX + (uStartVCol * charWidth - scrollLeft);
           const ux2 = textAreaX + (uEndVCol * charWidth - scrollLeft);
-          ctx.strokeStyle = theme.urlColor || '#0000ee';
+          ctx.strokeStyle = tokenColor;
           ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(ux1, rowY + baseline + 1.5);

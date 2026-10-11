@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
-import type { TypeSettingItem, ColorItemSetting } from '../../../core/config/TypeSettingsModel';
+import {
+  INITIAL_COLOR_SETTINGS,
+  type TypeSettingItem,
+  type ColorItemSetting,
+  type CommentStyleSetting,
+} from '../../../core/config/TypeSettingsModel';
 import { KeywordDialog } from './KeywordDialog';
 
 interface TypeSettingDialogProps {
@@ -76,25 +81,42 @@ export const TypeSettingDialog: React.FC<TypeSettingDialogProps> = ({
   const fileInputBgImageRef = React.useRef<HTMLInputElement>(null);
 
   const [outlineRuleFile, setOutlineRuleFile] = useState('');
-  const [keywordSet1, setKeywordSet1] = useState(typeItem.name || 'JavaScript');
-  const [keywordSets2to10, setKeywordSets2to10] = useState<string[]>(Array(9).fill(''));
+  const [keywordSet1, setKeywordSet1] = useState(typeItem.keywordSet1 || (typeItem.name !== '基本' && typeItem.name !== 'テキスト' ? typeItem.name : ''));
+  const [keywordSets2to10, setKeywordSets2to10] = useState<string[]>(typeItem.keywordSets2to10 || Array(9).fill(''));
+  const [commentStyle, setCommentStyle] = useState<CommentStyleSetting>(typeItem.commentStyle || {});
   const [isKeywordSets2to10Open, setIsKeywordSets2to10Open] = useState(false);
   const [bgImagePath, setBgImagePath] = useState('');
   const [availableKeywordSetNames, setAvailableKeywordSetNames] = useState<string[]>([
-    'JavaScript', 'C/C++', 'HTML', 'Python', 'SQL', 'Java'
+    'C/C++', 'HTML', 'JavaScript', 'Python', 'SQL', 'Java', 'C#', 'PHP', 'Ruby', 'Go', 'Rust',
+    'CSS', 'Shell Script', 'PowerShell', 'MS-DOSバッチファイル', 'INI', 'Markdown', 'Perl',
+    'Visual Basic', 'Pascal', 'COBOL', 'TeX', 'Assembler', 'AWK', 'JSON', '設定ファイル'
   ]);
 
   // ダイアログが開くたびに状態を同期
   React.useEffect(() => {
-    setData(typeItem);
+    const initialColors = { ...INITIAL_COLOR_SETTINGS, ...(typeItem.colorSettings || {}) };
+    setData({ ...typeItem, colorSettings: initialColors });
     setSelectedColorKey('text');
+    setKeywordSet1(typeItem.keywordSet1 || (typeItem.name !== '基本' && typeItem.name !== 'テキスト' ? typeItem.name : ''));
+    setKeywordSets2to10(typeItem.keywordSets2to10 || Array(9).fill(''));
+    setCommentStyle(typeItem.commentStyle || {});
     if (initialTab) setActiveTab(initialTab);
+    const standardNames = [
+      'C/C++', 'HTML', 'JavaScript', 'Python', 'SQL', 'Java', 'C#', 'PHP', 'Ruby', 'Go', 'Rust',
+      'CSS', 'Shell Script', 'PowerShell', 'MS-DOSバッチファイル', 'INI', 'Markdown', 'Perl',
+      'Visual Basic', 'Pascal', 'COBOL', 'TeX', 'Assembler', 'AWK', 'JSON', '設定ファイル'
+    ];
     try {
       const savedKwd = localStorage.getItem('sakura_keyword_sets_data');
       if (savedKwd) {
-        setAvailableKeywordSetNames(Object.keys(JSON.parse(savedKwd)));
+        const customNames = Object.keys(JSON.parse(savedKwd));
+        setAvailableKeywordSetNames(Array.from(new Set([...standardNames, ...customNames])));
+      } else {
+        setAvailableKeywordSetNames(standardNames);
       }
-    } catch {}
+    } catch {
+      setAvailableKeywordSetNames(standardNames);
+    }
   }, [typeItem, isOpen, initialTab]);
 
   if (!isOpen) return null;
@@ -331,7 +353,13 @@ export const TypeSettingDialog: React.FC<TypeSettingDialogProps> = ({
   };
 
   const handleOk = () => {
-    onSave(data);
+    const updatedItem: TypeSettingItem = {
+      ...data,
+      keywordSet1,
+      keywordSets2to10,
+      commentStyle,
+    };
+    onSave(updatedItem);
     onClose();
   };
 
@@ -848,6 +876,7 @@ export const TypeSettingDialog: React.FC<TypeSettingDialogProps> = ({
                             onChange={(e) => setKeywordSet1(e.target.value)}
                             style={{ flex: 1, padding: '1px' }}
                           >
+                            <option value="">(なし)</option>
                             {availableKeywordSetNames.map((name) => (
                               <option key={name} value={name}>{name}</option>
                             ))}
@@ -874,26 +903,76 @@ export const TypeSettingDialog: React.FC<TypeSettingDialogProps> = ({
                         <legend>コメントスタイル</legend>
                         <div style={{ display: 'grid', gridTemplateColumns: '70px 65px 12px 65px', gap: '3px', alignItems: 'center' }}>
                           <label>ブロック型(F):</label>
-                          <input type="text" defaultValue="/*" style={{ padding: '1px' }} />
+                          <input
+                            type="text"
+                            value={commentStyle.block1?.start || ''}
+                            onChange={(e) => setCommentStyle((prev) => ({
+                              ...prev,
+                              block1: { start: e.target.value, end: prev.block1?.end || '' },
+                            }))}
+                            placeholder="/*"
+                            style={{ padding: '1px' }}
+                          />
                           <span>〜</span>
-                          <input type="text" defaultValue="*/" style={{ padding: '1px' }} />
+                          <input
+                            type="text"
+                            value={commentStyle.block1?.end || ''}
+                            onChange={(e) => setCommentStyle((prev) => ({
+                              ...prev,
+                              block1: { start: prev.block1?.start || '', end: e.target.value },
+                            }))}
+                            placeholder="*/"
+                            style={{ padding: '1px' }}
+                          />
 
                           <label>ブロック型(A):</label>
-                          <input type="text" defaultValue="" style={{ padding: '1px' }} />
+                          <input
+                            type="text"
+                            value={commentStyle.block2?.start || ''}
+                            onChange={(e) => setCommentStyle((prev) => ({
+                              ...prev,
+                              block2: { start: e.target.value, end: prev.block2?.end || '' },
+                            }))}
+                            style={{ padding: '1px' }}
+                          />
                           <span>〜</span>
-                          <input type="text" defaultValue="" style={{ padding: '1px' }} />
+                          <input
+                            type="text"
+                            value={commentStyle.block2?.end || ''}
+                            onChange={(e) => setCommentStyle((prev) => ({
+                              ...prev,
+                              block2: { start: prev.block2?.start || '', end: e.target.value },
+                            }))}
+                            style={{ padding: '1px' }}
+                          />
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '60px 45px 1fr', gap: '4px', marginTop: '4px', alignItems: 'center' }}>
                           <label>行型(M):</label>
-                          <input type="text" defaultValue="//" style={{ padding: '1px' }} />
+                          <input
+                            type="text"
+                            value={commentStyle.line1 || ''}
+                            onChange={(e) => setCommentStyle((prev) => ({ ...prev, line1: e.target.value }))}
+                            placeholder="//"
+                            style={{ padding: '1px' }}
+                          />
                           <label style={{ fontSize: '10px' }}><input type="checkbox" /> 桁(P) @ 1</label>
 
                           <label>行型(E):</label>
-                          <input type="text" defaultValue="" style={{ padding: '1px' }} />
+                          <input
+                            type="text"
+                            value={commentStyle.line2 || ''}
+                            onChange={(e) => setCommentStyle((prev) => ({ ...prev, line2: e.target.value }))}
+                            style={{ padding: '1px' }}
+                          />
                           <label style={{ fontSize: '10px' }}><input type="checkbox" /> 桁(O) @ 1</label>
 
                           <label>行型(G):</label>
-                          <input type="text" defaultValue="" style={{ padding: '1px' }} />
+                          <input
+                            type="text"
+                            value={commentStyle.line3 || ''}
+                            onChange={(e) => setCommentStyle((prev) => ({ ...prev, line3: e.target.value }))}
+                            style={{ padding: '1px' }}
+                          />
                           <label style={{ fontSize: '10px' }}><input type="checkbox" /> 桁(J) @ 1</label>
                         </div>
                       </fieldset>

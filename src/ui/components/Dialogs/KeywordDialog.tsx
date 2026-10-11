@@ -107,6 +107,184 @@ const DEFAULT_KEYWORD_SETS: Record<string, KeywordSetData> = {
       'UNION', 'UNIQUE', 'UPDATE', 'VALUES', 'VIEW', 'WHEN', 'WHERE'
     ],
   },
+  Java: {
+    matchCase: true,
+    keywords: [
+      'abstract', 'assert', 'boolean', 'break', 'byte', 'case', 'catch', 'char', 'class', 'const',
+      'continue', 'default', 'do', 'double', 'else', 'enum', 'extends', 'final', 'finally', 'float',
+      'for', 'goto', 'if', 'implements', 'import', 'instanceof', 'int', 'interface', 'long', 'native',
+      'new', 'null', 'package', 'private', 'protected', 'public', 'return', 'short', 'static', 'strictfp',
+      'super', 'switch', 'synchronized', 'this', 'throw', 'throws', 'transient', 'true', 'false', 'try',
+      'void', 'volatile', 'while', 'var', 'record', 'sealed', 'permits', 'yield'
+    ],
+  },
+  'C#': {
+    matchCase: true,
+    keywords: [
+      'abstract', 'as', 'base', 'bool', 'break', 'byte', 'case', 'catch', 'char', 'checked', 'class',
+      'const', 'continue', 'decimal', 'default', 'delegate', 'do', 'double', 'else', 'enum', 'event',
+      'explicit', 'extern', 'false', 'finally', 'fixed', 'float', 'for', 'foreach', 'goto', 'if',
+      'implicit', 'in', 'int', 'interface', 'internal', 'is', 'lock', 'long', 'namespace', 'new', 'null',
+      'object', 'operator', 'out', 'override', 'params', 'private', 'protected', 'public', 'readonly',
+      'ref', 'return', 'sbyte', 'sealed', 'short', 'sizeof', 'stackalloc', 'static', 'string', 'struct',
+      'switch', 'this', 'throw', 'true', 'try', 'typeof', 'uint', 'ulong', 'unchecked', 'unsafe',
+      'ushort', 'using', 'virtual', 'void', 'volatile', 'while', 'async', 'await', 'var', 'yield',
+      'record', 'init', 'get', 'set', 'value'
+    ],
+  },
+  PHP: {
+    matchCase: false,
+    keywords: [
+      'echo', 'print', 'function', 'class', 'interface', 'trait', 'public', 'protected', 'private',
+      'static', 'final', 'abstract', 'const', 'return', 'if', 'else', 'elseif', 'while', 'do', 'for',
+      'foreach', 'as', 'break', 'continue', 'switch', 'case', 'default', 'try', 'catch', 'finally',
+      'throw', 'new', 'clone', 'instanceof', 'use', 'namespace', 'require', 'require_once', 'include',
+      'include_once', 'yield', 'fn', 'match', 'true', 'false', 'null', 'array', 'isset', 'empty',
+      'die', 'exit', 'var', 'global', 'extends', 'implements', 'self', 'parent'
+    ],
+  },
+  Ruby: {
+    matchCase: true,
+    keywords: [
+      'alias', 'and', 'begin', 'break', 'case', 'class', 'def', 'defined?', 'do', 'else', 'elsif',
+      'end', 'ensure', 'false', 'for', 'if', 'in', 'module', 'next', 'nil', 'not', 'or', 'redo',
+      'rescue', 'retry', 'return', 'self', 'super', 'then', 'true', 'undef', 'unless', 'until',
+      'when', 'while', 'yield', 'attr_accessor', 'attr_reader', 'attr_writer', 'require', 'require_relative',
+      'include', 'extend', 'puts', 'print', 'raise'
+    ],
+  },
+  Go: {
+    matchCase: true,
+    keywords: [
+      'break', 'case', 'chan', 'const', 'continue', 'default', 'defer', 'else', 'fallthrough', 'for',
+      'func', 'go', 'goto', 'if', 'import', 'interface', 'map', 'package', 'range', 'return', 'select',
+      'struct', 'switch', 'type', 'var', 'nil', 'true', 'false', 'iota', 'make', 'new', 'append',
+      'len', 'cap', 'copy', 'delete', 'panic', 'recover', 'string', 'int', 'int8', 'int16', 'int32',
+      'int64', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'float32', 'float64', 'bool', 'byte',
+      'rune', 'error'
+    ],
+  },
+  Rust: {
+    matchCase: true,
+    keywords: [
+      'as', 'async', 'await', 'break', 'const', 'continue', 'crate', 'dyn', 'else', 'enum', 'extern',
+      'false', 'fn', 'for', 'if', 'impl', 'in', 'let', 'loop', 'match', 'mod', 'move', 'mut', 'pub',
+      'ref', 'return', 'self', 'Self', 'static', 'struct', 'super', 'trait', 'true', 'type', 'unsafe',
+      'use', 'where', 'while', 'yield', 'i8', 'i16', 'i32', 'i64', 'i128', 'isize', 'u8', 'u16',
+      'u32', 'u64', 'u128', 'usize', 'f32', 'f64', 'bool', 'char', 'str', 'String', 'Vec', 'Option',
+      'Result', 'Some', 'None', 'Ok', 'Err', 'println', 'format', 'vec'
+    ],
+  },
+  CSS: {
+    matchCase: false,
+    keywords: [
+      'color', 'background', 'background-color', 'border', 'margin', 'padding', 'width', 'height',
+      'font', 'font-family', 'font-size', 'font-weight', 'line-height', 'display', 'flex', 'grid',
+      'position', 'top', 'bottom', 'left', 'right', 'z-index', 'overflow', 'opacity', 'cursor',
+      'transition', 'transform', 'animation', 'none', 'block', 'inline', 'inline-block', 'relative',
+      'absolute', 'fixed', 'sticky', '!important'
+    ],
+  },
+  'Shell Script': {
+    matchCase: true,
+    keywords: [
+      'if', 'then', 'else', 'elif', 'fi', 'case', 'esac', 'for', 'while', 'until', 'do', 'done',
+      'in', 'function', 'select', 'time', 'echo', 'export', 'source', 'exit', 'local', 'return',
+      'read', 'set', 'unset', 'alias', 'test', 'cd', 'pwd', 'mkdir', 'rm', 'cp', 'mv', 'cat', 'grep'
+    ],
+  },
+  PowerShell: {
+    matchCase: false,
+    keywords: [
+      'if', 'else', 'elseif', 'switch', 'foreach', 'for', 'while', 'do', 'until', 'break', 'continue',
+      'return', 'function', 'filter', 'param', 'begin', 'process', 'end', 'try', 'catch', 'finally',
+      'throw', 'trap', 'class', 'enum', 'using', 'Write-Host', 'Write-Output', 'Get-ChildItem',
+      'exit', 'true', 'false', 'null'
+    ],
+  },
+  'MS-DOSバッチファイル': {
+    matchCase: false,
+    keywords: [
+      '@echo', 'echo', 'off', 'on', 'set', 'if', 'else', 'goto', 'call', 'exit', 'pause', 'for',
+      'in', 'do', 'shift', 'choice', 'errorlevel', 'exist', 'not', 'start', 'title', 'cls', 'cd',
+      'dir', 'copy', 'del', 'md', 'rd', 'type', 'find', 'findstr', 'ren', 'move', 'xcopy', 'robocopy'
+    ],
+  },
+  INI: {
+    matchCase: false,
+    keywords: ['true', 'false', 'yes', 'no', 'on', 'off', 'enabled', 'disabled'],
+  },
+  Markdown: {
+    matchCase: false,
+    keywords: ['http', 'https', 'ftp', 'mailto'],
+  },
+  Perl: {
+    matchCase: true,
+    keywords: [
+      'my', 'our', 'local', 'sub', 'if', 'unless', 'else', 'elsif', 'while', 'until', 'for',
+      'foreach', 'do', 'next', 'last', 'redo', 'return', 'print', 'use', 'require', 'package',
+      'die', 'warn', 'strict', 'warnings'
+    ],
+  },
+  'Visual Basic': {
+    matchCase: false,
+    keywords: [
+      'dim', 'as', 'public', 'private', 'protected', 'sub', 'function', 'end', 'if', 'then',
+      'else', 'elseif', 'for', 'to', 'step', 'next', 'each', 'in', 'while', 'wend', 'do',
+      'loop', 'until', 'select', 'case', 'with', 'exit', 'return', 'new', 'set', 'call',
+      'const', 'true', 'false', 'nothing', 'string', 'integer', 'boolean', 'long', 'double', 'date'
+    ],
+  },
+  Pascal: {
+    matchCase: false,
+    keywords: [
+      'program', 'unit', 'interface', 'implementation', 'uses', 'var', 'const', 'type',
+      'procedure', 'function', 'begin', 'end', 'if', 'then', 'else', 'case', 'of', 'for',
+      'to', 'downto', 'do', 'while', 'repeat', 'until', 'with', 'try', 'except', 'finally',
+      'raise', 'class', 'record', 'array', 'string', 'integer', 'boolean', 'true', 'false', 'nil'
+    ],
+  },
+  COBOL: {
+    matchCase: false,
+    keywords: [
+      'identification', 'division', 'program-id', 'environment', 'data', 'working-storage',
+      'section', 'procedure', 'display', 'stop', 'run', 'move', 'to', 'compute', 'perform',
+      'varying', 'until', 'if', 'else', 'end-if', 'end-perform', 'pic', 'picture', 'value', 'occurs'
+    ],
+  },
+  TeX: {
+    matchCase: true,
+    keywords: [
+      'begin', 'end', 'documentclass', 'usepackage', 'section', 'subsection', 'subsubsection',
+      'paragraph', 'subparagraph', 'title', 'author', 'date', 'maketitle', 'tableofcontents',
+      'label', 'ref', 'cite', 'input', 'include', 'newcommand', 'renewcommand'
+    ],
+  },
+  Assembler: {
+    matchCase: false,
+    keywords: [
+      'mov', 'push', 'pop', 'add', 'sub', 'inc', 'dec', 'mul', 'div', 'jmp', 'je', 'jne',
+      'jz', 'jnz', 'cmp', 'call', 'ret', 'nop', 'int', 'lea', 'xor', 'and', 'or', 'not',
+      'eax', 'ebx', 'ecx', 'edx', 'esi', 'edi', 'ebp', 'esp', 'rax', 'rbx', 'rcx', 'rdx',
+      'section', 'data', 'text', 'global', 'extern'
+    ],
+  },
+  AWK: {
+    matchCase: true,
+    keywords: [
+      'BEGIN', 'END', 'if', 'else', 'while', 'do', 'for', 'in', 'break', 'continue',
+      'delete', 'exit', 'function', 'return', 'print', 'printf', 'getline', 'next',
+      'FS', 'RS', 'OFS', 'ORS', 'NF', 'NR', 'FNR', 'FILENAME', 'length', 'substr', 'split'
+    ],
+  },
+  JSON: {
+    matchCase: true,
+    keywords: ['true', 'false', 'null'],
+  },
+  設定ファイル: {
+    matchCase: false,
+    keywords: ['true', 'false', 'yes', 'no', 'on', 'off', 'enabled', 'disabled'],
+  },
 };
 
 const STORAGE_KEY = 'sakura_keyword_sets_data';

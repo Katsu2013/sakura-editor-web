@@ -265,7 +265,28 @@ export const App: React.FC = () => {
   const [searchOriginPos, setSearchOriginPos] = useState<Position | null>(null);
 
   // タイプ別設定リスト & 現在適用中のタイプID
-  const [typeSettingsList, setTypeSettingsList] = useState<TypeSettingItem[]>(DEFAULT_TYPE_SETTINGS);
+  const [typeSettingsList, setTypeSettingsList] = useState<TypeSettingItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('sakura_type_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((item: TypeSettingItem) => {
+            const def = DEFAULT_TYPE_SETTINGS.find((d) => d.id === item.id);
+            return {
+              ...(def || {}),
+              ...item,
+              colorSettings: {
+                ...(def?.colorSettings || {}),
+                ...(item.colorSettings || {}),
+              },
+            };
+          });
+        }
+      }
+    } catch {}
+    return DEFAULT_TYPE_SETTINGS;
+  });
   const [activeTypeId, setActiveTypeId] = useState<string>('type-text');
   const [editingTypeItem, setEditingTypeItem] = useState<TypeSettingItem | null>(null);
 
@@ -353,7 +374,24 @@ export const App: React.FC = () => {
   const [showKeywordHelp, setShowKeywordHelp] = useState(false);
   const [isGrepReplaceMode, setIsGrepReplaceMode] = useState(false);
   const [zoomPercent, setZoomPercent] = useState<number>(100);
-  const [commonSettings, setCommonSettings] = useState<CommonSettingsModel>(DEFAULT_COMMON_SETTINGS);
+  const [commonSettings, setCommonSettings] = useState<CommonSettingsModel>(() => {
+    try {
+      const saved = localStorage.getItem('sakura_common_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          ...DEFAULT_COMMON_SETTINGS,
+          ...parsed,
+          keyword: {
+            ...DEFAULT_COMMON_SETTINGS.keyword,
+            ...(parsed.keyword || {}),
+            sets: parsed.keyword?.sets?.length ? parsed.keyword.sets : DEFAULT_COMMON_SETTINGS.keyword.sets,
+          },
+        };
+      }
+    } catch {}
+    return DEFAULT_COMMON_SETTINGS;
+  });
   const [pageSetup, setPageSetup] = useState<PageSetupSettings>(DEFAULT_PAGE_SETUP_SETTINGS);
 
   // インクリメンタルサーチ状態
@@ -3127,6 +3165,7 @@ export const App: React.FC = () => {
                     isOverstrike={commonSettings.general.overstrike}
                     freeCursor={commonSettings.general.freeCursor}
                     showModifiedGutter={commonSettings.general.showModifiedGutter}
+                    commonKeywordSets={commonSettings.keyword.sets}
                   />
                 </div>
                 <div style={{ backgroundColor: '#808080', width: '4px', cursor: 'col-resize', zIndex: 5 }} />
@@ -3169,6 +3208,7 @@ export const App: React.FC = () => {
                     isOverstrike={commonSettings.general.overstrike}
                     freeCursor={commonSettings.general.freeCursor}
                     showModifiedGutter={commonSettings.general.showModifiedGutter}
+                    commonKeywordSets={commonSettings.keyword.sets}
                   />
                 </div>
               </div>
@@ -3217,6 +3257,7 @@ export const App: React.FC = () => {
                     isOverstrike={commonSettings.general.overstrike}
                     freeCursor={commonSettings.general.freeCursor}
                     showModifiedGutter={commonSettings.general.showModifiedGutter}
+                    commonKeywordSets={commonSettings.keyword.sets}
                   />
                 </div>
                 <div style={{ backgroundColor: '#808080', width: '4px', cursor: 'col-resize', zIndex: 5 }} />
@@ -3259,6 +3300,7 @@ export const App: React.FC = () => {
                     isOverstrike={commonSettings.general.overstrike}
                     freeCursor={commonSettings.general.freeCursor}
                     showModifiedGutter={commonSettings.general.showModifiedGutter}
+                    commonKeywordSets={commonSettings.keyword.sets}
                   />
                 </div>
               </div>
@@ -3310,6 +3352,7 @@ export const App: React.FC = () => {
                   isOverstrike={commonSettings.general.overstrike}
                   freeCursor={commonSettings.general.freeCursor}
                   showModifiedGutter={commonSettings.general.showModifiedGutter}
+                  commonKeywordSets={commonSettings.keyword.sets}
                 />
               </div>
               {showMiniMap && (
@@ -3377,6 +3420,7 @@ export const App: React.FC = () => {
                       isOverstrike={commonSettings.general.overstrike}
                       freeCursor={commonSettings.general.freeCursor}
                       showModifiedGutter={commonSettings.general.showModifiedGutter}
+                      commonKeywordSets={commonSettings.keyword.sets}
                     />
                   </div>
                 </>
@@ -3502,7 +3546,12 @@ export const App: React.FC = () => {
           setTypeSettingInitialTab('screen');
           setIsTypeSettingsOpen(true);
         }}
-        onUpdateList={(newList) => setTypeSettingsList(newList)}
+        onUpdateList={(newList) => {
+          setTypeSettingsList(newList);
+          try {
+            localStorage.setItem('sakura_type_settings', JSON.stringify(newList));
+          } catch {}
+        }}
       />
 
       <TypeSettingDialog
@@ -3511,9 +3560,17 @@ export const App: React.FC = () => {
         initialTab={typeSettingInitialTab}
         onClose={() => setIsTypeSettingsOpen(false)}
         onSave={(updated) => {
-          setTypeSettingsList((prev) =>
-            prev.map((t) => (t.id === updated.id ? updated : t))
-          );
+          setTypeSettingsList((prev) => {
+            const next = prev.map((t) => (t.id === updated.id ? updated : t));
+            try {
+              localStorage.setItem('sakura_type_settings', JSON.stringify(next));
+            } catch {}
+            return next;
+          });
+          const doc = tabs.find((t) => t.id === activeTabId) || tabs[0];
+          if (doc) {
+            setActiveTypeId(doc.typeSettingId || detectTypeFromFilename(doc.title, doc.buffer.getText()));
+          }
         }}
       />
 
@@ -3522,7 +3579,12 @@ export const App: React.FC = () => {
         settings={commonSettings}
         initialTab={commonSettingInitialTab}
         onClose={() => setIsCommonSettingsOpen(false)}
-        onSave={(updated) => setCommonSettings(updated)}
+        onSave={(updated) => {
+          setCommonSettings(updated);
+          try {
+            localStorage.setItem('sakura_common_settings', JSON.stringify(updated));
+          } catch {}
+        }}
       />
 
       <HistoryManagementDialog

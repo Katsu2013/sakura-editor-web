@@ -58,6 +58,7 @@ interface EditorViewProps {
   freeCursor?: boolean;
   showModifiedGutter?: boolean;
   readOnly?: boolean;
+  commonKeywordSets?: Array<{ id?: number; name: string; caseSensitive?: boolean; keywords: string[] }>;
 }
 
 const SYNTAX_KEYWORDS: Record<string, string[]> = {
@@ -119,6 +120,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
   freeCursor = false,
   showModifiedGutter = true,
   readOnly = false,
+  commonKeywordSets,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -185,9 +187,9 @@ export const EditorView: React.FC<EditorViewProps> = ({
   }, [buffer]);
 
   // シンタックスルール
-  const getSyntaxRule = (): SyntaxRule | undefined => {
-    return SyntaxHighlighter.getRuleByName(settings.syntaxName);
-  };
+  const getSyntaxRule = useCallback((): SyntaxRule | undefined => {
+    return SyntaxHighlighter.buildRuleForType(settings, commonKeywordSets);
+  }, [settings, commonKeywordSets]);
 
   // 再描画トリガー
   const requestRender = useCallback(() => {
@@ -217,9 +219,10 @@ export const EditorView: React.FC<EditorViewProps> = ({
         lineSpacing: settings.lineSpacing,
         showModifiedGutter,
       },
-      diffMarks
+      diffMarks,
+      settings.colorSettings
     );
-  }, [buffer, lineMap, metrics, viewport, cursor, selection, settings, bookmarkManager, searchHighlight, diffMarks, showModifiedGutter]);
+  }, [buffer, lineMap, metrics, viewport, cursor, selection, settings, bookmarkManager, searchHighlight, diffMarks, showModifiedGutter, getSyntaxRule]);
 
   useEffect(() => {
     requestRender();

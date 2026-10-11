@@ -1,6 +1,17 @@
+import type { TypeSettingItem } from '../config/TypeSettingsModel';
+
 export type TokenType =
   | 'text'
   | 'keyword'
+  | 'keyword2'
+  | 'keyword3'
+  | 'keyword4'
+  | 'keyword5'
+  | 'keyword6'
+  | 'keyword7'
+  | 'keyword8'
+  | 'keyword9'
+  | 'keyword10'
   | 'comment'
   | 'string'
   | 'number'
@@ -23,11 +34,18 @@ export interface BlockCommentRule {
   end: string;
 }
 
+export interface KeywordSetRule {
+  index: number; // 1 to 10
+  keywords: Set<string>;
+  caseSensitive?: boolean;
+}
+
 export interface SyntaxRule {
   name: string;
   caseSensitive?: boolean;
   keywords: Set<string>;
   keywords2?: Set<string>;
+  keywordSets?: KeywordSetRule[];
   lineComments?: string[];
   blockComments?: BlockCommentRule[];
   stringDelimiters?: string[];
@@ -468,6 +486,144 @@ export class SyntaxHighlighter {
     return undefined;
   }
 
+  public static buildRuleForType(
+    typeItem?: TypeSettingItem,
+    commonKeywordSets?: Array<{ id?: number; name: string; caseSensitive?: boolean; keywords: string[] }> | Record<string, { matchCase?: boolean; keywords: string[] }>
+  ): SyntaxRule | undefined {
+    if (!typeItem) return undefined;
+    const base = SyntaxHighlighter.getRuleByName(typeItem.syntaxName || typeItem.name);
+
+    // If no base rule exists and no custom keywords/comments, treat as Text
+    const hasKeywordSet1 = !!typeItem.keywordSet1;
+    const hasKeywordSets2to10 = !!typeItem.keywordSets2to10?.some((k) => !!k);
+    const hasCommentStyle = !!(
+      typeItem.commentStyle?.block1?.start ||
+      typeItem.commentStyle?.block2?.start ||
+      typeItem.commentStyle?.line1
+    );
+
+    if (!base && !hasKeywordSet1 && !hasKeywordSets2to10 && !hasCommentStyle) {
+      return undefined;
+    }
+
+    const blockComments: BlockCommentRule[] = [...(base?.blockComments || (base?.blockCommentStart && base?.blockCommentEnd ? [{ start: base.blockCommentStart, end: base.blockCommentEnd }] : []))];
+    const lineComments: string[] = [...(base?.lineComments || (base?.lineComment ? [base.lineComment] : []))];
+
+    // 1. カスタムコメントスタイルの反映
+    if (typeItem.commentStyle) {
+      const cs = typeItem.commentStyle;
+      if (cs.block1?.start && cs.block1?.end) {
+        const idx = blockComments.findIndex((b) => b.start === cs.block1!.start);
+        if (idx !== -1) blockComments.splice(idx, 1);
+        blockComments.unshift({ start: cs.block1.start, end: cs.block1.end });
+      }
+      if (cs.block2?.start && cs.block2?.end) {
+        const idx = blockComments.findIndex((b) => b.start === cs.block2!.start);
+        if (idx !== -1) blockComments.splice(idx, 1);
+        blockComments.push({ start: cs.block2.start, end: cs.block2.end });
+      }
+      const customLines = [cs.line1, cs.line2, cs.line3].filter(Boolean) as string[];
+      for (const cl of customLines) {
+        if (!lineComments.includes(cl)) {
+          lineComments.unshift(cl);
+        }
+      }
+    }
+
+    // Clone base rule or start empty
+    const rule: SyntaxRule = {
+      name: base?.name || typeItem.syntaxName || typeItem.name,
+      caseSensitive: base?.caseSensitive ?? true,
+      keywords: new Set(base?.keywords || []),
+      keywords2: base?.keywords2 ? new Set(base.keywords2) : undefined,
+      lineComments,
+      blockComments,
+      stringDelimiters: base?.stringDelimiters ? [...base.stringDelimiters] : ['"', "'"],
+      multilineStrings: base?.multilineStrings ? [...base.multilineStrings] : [],
+      preprocessorPrefix: base?.preprocessorPrefix,
+      variablePrefixes: base?.variablePrefixes ? [...base.variablePrefixes] : undefined,
+      keywordSets: [],
+    };
+
+    // 2. キーワードセットマップ構築 (共通設定 & localStorage 連携)
+    const kwSetMap = new Map<string, { caseSensitive: boolean; keywords: string[] }>();
+
+    if (Array.isArray(commonKeywordSets)) {
+      for (const s of commonKeywordSets) {
+        if (s.name) {
+          kwSetMap.set(s.name.trim().toLowerCase(), {
+            caseSensitive: s.caseSensitive ?? true,
+            keywords: s.keywords,
+          });
+        }
+      }
+    } else if (commonKeywordSets && typeof commonKeywordSets === 'object') {
+      for (const [k, v] of Object.entries(commonKeywordSets)) {
+        kwSetMap.set(k.trim().toLowerCase(), {
+          caseSensitive: v.matchCase ?? true,
+          keywords: v.keywords,
+        });
+      }
+    }
+
+    // localStorage の最新キーワードセットデータを自動同期 (ユーザーの追加・編集を即時反映)
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const savedKwd = localStorage.getItem('sakura_keyword_sets_data');
+        if (savedKwd) {
+          const parsed = JSON.parse(savedKwd);
+          for (const [k, v] of Object.entries<any>(parsed)) {
+            kwSetMap.set(k.trim().toLowerCase(), {
+              caseSensitive: v.matchCase ?? true,
+              keywords: v.keywords || [],
+            });
+          }
+        }
+      } catch {}
+    }
+
+    // 強調キーワード1の紐付け
+    const targetSet1 = (typeItem.keywordSet1 || typeItem.name || typeItem.syntaxName || '').trim().toLowerCase();
+    if (targetSet1 && kwSetMap.has(targetSet1)) {
+      const data1 = kwSetMap.get(targetSet1)!;
+      rule.caseSensitive = data1.caseSensitive;
+      rule.keywords = new Set(
+        data1.caseSensitive ? data1.keywords : data1.keywords.map((w) => w.toLowerCase())
+      );
+      rule.keywordSets!.push({
+        index: 1,
+        keywords: rule.keywords,
+        caseSensitive: data1.caseSensitive,
+      });
+    } else {
+      rule.keywordSets!.push({
+        index: 1,
+        keywords: rule.keywords,
+        caseSensitive: rule.caseSensitive,
+      });
+    }
+
+    // 強調キーワード2〜10の紐付け
+    if (typeItem.keywordSets2to10 && Array.isArray(typeItem.keywordSets2to10)) {
+      for (let i = 0; i < typeItem.keywordSets2to10.length; i++) {
+        const setName = (typeItem.keywordSets2to10[i] || '').trim().toLowerCase();
+        if (setName && kwSetMap.has(setName)) {
+          const data = kwSetMap.get(setName)!;
+          const kSet = new Set(
+            data.caseSensitive ? data.keywords : data.keywords.map((w) => w.toLowerCase())
+          );
+          rule.keywordSets!.push({
+            index: i + 2,
+            keywords: kSet,
+            caseSensitive: data.caseSensitive,
+          });
+        }
+      }
+    }
+
+    return rule;
+  }
+
   public static tokenizeLine(
     text: string,
     rule?: SyntaxRule,
@@ -723,7 +879,7 @@ export class SyntaxHighlighter {
         continue;
       }
 
-      // 3.11. 単語 / 予約語 (キーワード)
+      // 3.11. 単語 / 予約語 (強調キーワード 1〜10)
       if (/[a-zA-Z_]/.test(text[i])) {
         const start = i;
         while (i < len && /[a-zA-Z0-9_\-]/.test(text[i])) {
@@ -731,11 +887,42 @@ export class SyntaxHighlighter {
         }
         const rawWord = text.substring(start, i);
         const testWord = isCaseSensitive ? rawWord : rawWord.toLowerCase();
-        if (rule.keywords.has(testWord) || rule.keywords2?.has(testWord)) {
-          tokens.push({ type: 'keyword', start, end: i });
-        } else {
-          tokens.push({ type: 'text', start, end: i });
+
+        let matchedType: TokenType = 'text';
+
+        // 1. 強調キーワード 2〜10 の判定
+        if (rule.keywordSets && rule.keywordSets.length > 0) {
+          for (const ks of rule.keywordSets) {
+            if (ks.index >= 2) {
+              const wordToTest = ks.caseSensitive ? rawWord : rawWord.toLowerCase();
+              if (ks.keywords.has(wordToTest)) {
+                matchedType = `keyword${ks.index}` as TokenType;
+                break;
+              }
+            }
+          }
+          // 強調キーワード 1 の判定
+          if (matchedType === 'text') {
+            const set1 = rule.keywordSets.find((ks) => ks.index === 1);
+            if (set1) {
+              const wordToTest = set1.caseSensitive ? rawWord : rawWord.toLowerCase();
+              if (set1.keywords.has(wordToTest)) {
+                matchedType = 'keyword';
+              }
+            }
+          }
         }
+
+        // 2. 後方互換性用 (rule.keywords / rule.keywords2)
+        if (matchedType === 'text') {
+          if (rule.keywords.has(testWord)) {
+            matchedType = 'keyword';
+          } else if (rule.keywords2?.has(testWord)) {
+            matchedType = 'keyword2';
+          }
+        }
+
+        tokens.push({ type: matchedType, start, end: i });
         continue;
       }
 
