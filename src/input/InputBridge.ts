@@ -25,6 +25,13 @@ export interface InputBridgeHandlers {
   onZoomWheel?: (direction: number) => void;
   onWordComplete?: () => void;
   onIncrementalSearch?: (backward: boolean) => void;
+  onSelectAll?: () => void;
+  onSave?: () => void;
+  onFind?: () => void;
+  onFindNext?: () => void;
+  onFindPrev?: () => void;
+  onReplace?: () => void;
+  onJump?: () => void;
 }
 
 export class InputBridge {
@@ -32,6 +39,9 @@ export class InputBridge {
   private hiddenTextarea: HTMLTextAreaElement;
   private handlers: InputBridgeHandlers;
   private isComposing: boolean = false;
+  private justComposed: boolean = false;
+  private onWheelBound: (e: WheelEvent) => void;
+  private onMouseDownBound: (e: MouseEvent) => void;
 
   constructor(container: HTMLElement, handlers: InputBridgeHandlers) {
     this.container = container;
@@ -59,16 +69,44 @@ export class InputBridge {
     textarea.style.whiteSpace = 'pre';
     textarea.style.padding = '0';
     textarea.style.margin = '0';
-    textarea.style.zIndex = '-1';
+    textarea.style.pointerEvents = 'none';
+    textarea.style.zIndex = '0';
 
     container.appendChild(textarea);
     this.hiddenTextarea = textarea;
+
+    this.onWheelBound = (e: WheelEvent) => {
+      e.preventDefault();
+      if (e.ctrlKey) {
+        this.handlers.onZoomWheel?.(-Math.sign(e.deltaY));
+        return;
+      }
+      this.handlers.onScroll(e.deltaX, e.deltaY);
+    };
+
+    this.onMouseDownBound = () => {
+      this.focus();
+    };
 
     this.attachEventListeners();
   }
 
   public focus(): void {
-    this.hiddenTextarea.focus();
+    if (this.hiddenTextarea) {
+      try {
+        this.hiddenTextarea.focus({ preventScroll: true });
+      } catch {
+        this.hiddenTextarea.focus();
+      }
+    }
+  }
+
+  public isFocused(): boolean {
+    return document.activeElement === this.hiddenTextarea;
+  }
+
+  public setHandlers(handlers: InputBridgeHandlers): void {
+    this.handlers = handlers;
   }
 
   /**
@@ -85,6 +123,7 @@ export class InputBridge {
     // 1. IME 変換イベント
     ta.addEventListener('compositionstart', () => {
       this.isComposing = true;
+      this.justComposed = false;
     });
 
     ta.addEventListener('compositionupdate', () => {
@@ -98,14 +137,25 @@ export class InputBridge {
         this.handlers.onInsertText(text);
       }
       ta.value = '';
+      this.justComposed = true;
     });
 
     // 2. 通常の入力イベント
     ta.addEventListener('input', (e) => {
       if (this.isComposing) return;
+      if (this.justComposed) {
+        this.justComposed = false;
+        ta.value = '';
+        return;
+      }
       const inputEvent = e as InputEvent;
-      if (inputEvent.data) {
-        this.handlers.onInsertText(inputEvent.data);
+      if (inputEvent.inputType === 'insertCompositionText') {
+        ta.value = '';
+        return;
+      }
+      const text = inputEvent.data ?? ta.value;
+      if (text) {
+        this.handlers.onInsertText(text);
       }
       ta.value = '';
     });
@@ -116,7 +166,7 @@ export class InputBridge {
       const isShift = e.shiftKey;
       const isAlt = e.altKey;
 
-      if (this.isComposing) return;
+      if (this.isComposing || e.isComposing || e.keyCode === 229) return;
 
       // Undo / Redo
       if (isCtrl && !isShift && e.key.toLowerCase() === 'z') {
@@ -127,6 +177,52 @@ export class InputBridge {
       if ((isCtrl && e.key.toLowerCase() === 'y') || (isCtrl && isShift && e.key.toLowerCase() === 'z')) {
         e.preventDefault();
         this.handlers.onRedo();
+        return;
+      }
+
+      // すべて選択 Ctrl+A
+      if (isCtrl && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        this.handlers.onSelectAll?.();
+        return;
+      }
+
+      // 保存 Ctrl+S
+      if (isCtrl && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        this.handlers.onSave?.();
+        return;
+      }
+
+      // 検索 Ctrl+F
+      if (isCtrl && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        this.handlers.onFind?.();
+        return;
+      }
+
+      // 置換 Ctrl+R
+      if (isCtrl && e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        this.handlers.onReplace?.();
+        return;
+      }
+
+      // 指定行ジャンプ Ctrl+J
+      if (isCtrl && e.key.toLowerCase() === 'j') {
+        e.preventDefault();
+        this.handlers.onJump?.();
+        return;
+      }
+
+      // 次を検索 / 前を検索 F3 / Shift+F3
+      if (e.key === 'F3') {
+        e.preventDefault();
+        if (isShift) {
+          this.handlers.onFindPrev?.();
+        } else {
+          this.handlers.onFindNext?.();
+        }
         return;
       }
 
@@ -274,22 +370,13 @@ export class InputBridge {
     });
 
     // 5. マウス & スクロールイベント (コンテナ)
-    this.container.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      if (e.ctrlKey) {
-        // Ctrl+Wheel でフォントズーム
-        this.handlers.onZoomWheel?.(-Math.sign(e.deltaY));
-        return;
-      }
-      this.handlers.onScroll(e.deltaX, e.deltaY);
-    }, { passive: false });
-
-    this.container.addEventListener('mousedown', () => {
-      this.focus();
-    });
+    this.container.addEventListener('wheel', this.onWheelBound, { passive: false });
+    this.container.addEventListener('mousedown', this.onMouseDownBound);
   }
 
   public destroy(): void {
+    this.container.removeEventListener('wheel', this.onWheelBound);
+    this.container.removeEventListener('mousedown', this.onMouseDownBound);
     if (this.hiddenTextarea.parentElement) {
       this.hiddenTextarea.parentElement.removeChild(this.hiddenTextarea);
     }

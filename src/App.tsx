@@ -3166,6 +3166,8 @@ export const App: React.FC = () => {
                     freeCursor={commonSettings.general.freeCursor}
                     showModifiedGutter={commonSettings.general.showModifiedGutter}
                     commonKeywordSets={commonSettings.keyword.sets}
+                    onSave={() => handleSave(false)}
+                    onOpenJump={() => setIsJumpOpen(true)}
                   />
                 </div>
                 <div style={{ backgroundColor: '#808080', width: '4px', cursor: 'col-resize', zIndex: 5 }} />
@@ -3209,6 +3211,8 @@ export const App: React.FC = () => {
                     freeCursor={commonSettings.general.freeCursor}
                     showModifiedGutter={commonSettings.general.showModifiedGutter}
                     commonKeywordSets={commonSettings.keyword.sets}
+                    onSave={() => handleSave(false)}
+                    onOpenJump={() => setIsJumpOpen(true)}
                   />
                 </div>
               </div>
@@ -3258,6 +3262,8 @@ export const App: React.FC = () => {
                     freeCursor={commonSettings.general.freeCursor}
                     showModifiedGutter={commonSettings.general.showModifiedGutter}
                     commonKeywordSets={commonSettings.keyword.sets}
+                    onSave={() => handleSave(false)}
+                    onOpenJump={() => setIsJumpOpen(true)}
                   />
                 </div>
                 <div style={{ backgroundColor: '#808080', width: '4px', cursor: 'col-resize', zIndex: 5 }} />
@@ -3301,6 +3307,8 @@ export const App: React.FC = () => {
                     freeCursor={commonSettings.general.freeCursor}
                     showModifiedGutter={commonSettings.general.showModifiedGutter}
                     commonKeywordSets={commonSettings.keyword.sets}
+                    onSave={() => handleSave(false)}
+                    onOpenJump={() => setIsJumpOpen(true)}
                   />
                 </div>
               </div>
@@ -3353,6 +3361,8 @@ export const App: React.FC = () => {
                   freeCursor={commonSettings.general.freeCursor}
                   showModifiedGutter={commonSettings.general.showModifiedGutter}
                   commonKeywordSets={commonSettings.keyword.sets}
+                  onSave={() => handleSave(false)}
+                  onOpenJump={() => setIsJumpOpen(true)}
                 />
               </div>
               {showMiniMap && (
@@ -3421,6 +3431,8 @@ export const App: React.FC = () => {
                       freeCursor={commonSettings.general.freeCursor}
                       showModifiedGutter={commonSettings.general.showModifiedGutter}
                       commonKeywordSets={commonSettings.keyword.sets}
+                      onSave={() => handleSave(false)}
+                      onOpenJump={() => setIsJumpOpen(true)}
                     />
                   </div>
                 </>

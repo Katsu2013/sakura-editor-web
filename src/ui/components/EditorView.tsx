@@ -4,7 +4,7 @@ import { LayoutEngine } from '../../core/layout/LayoutEngine';
 import { LineMap } from '../../core/layout/LineMap';
 import { CanvasRenderer, type ViewportState } from '../../renderer/CanvasRenderer';
 import { FontMetrics, type FontMetricsInfo } from '../../renderer/FontMetrics';
-import { InputBridge } from '../../input/InputBridge';
+import { InputBridge, type InputBridgeHandlers } from '../../input/InputBridge';
 import type { Position, SelectionRange } from '../../core/buffer/types';
 import { SyntaxHighlighter, type SyntaxRule } from '../../core/syntax/SyntaxHighlighter';
 import type { TypeSettingItem } from '../../core/config/TypeSettingsModel';
@@ -59,6 +59,8 @@ interface EditorViewProps {
   showModifiedGutter?: boolean;
   readOnly?: boolean;
   commonKeywordSets?: Array<{ id?: number; name: string; caseSensitive?: boolean; keywords: string[] }>;
+  onSave?: () => void;
+  onOpenJump?: () => void;
 }
 
 const SYNTAX_KEYWORDS: Record<string, string[]> = {
@@ -121,6 +123,8 @@ export const EditorView: React.FC<EditorViewProps> = ({
   showModifiedGutter = true,
   readOnly = false,
   commonKeywordSets,
+  onSave,
+  onOpenJump,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -164,28 +168,6 @@ export const EditorView: React.FC<EditorViewProps> = ({
   const [isDraggingHThumb, setIsDraggingHThumb] = useState(false);
   const dragStartPosRef = useRef({ mouse: 0, scroll: 0 });
 
-  // 設定変更時の反映
-  useEffect(() => {
-    const curEffectiveFontSize = Math.max(8, Math.round(settings.fontSize * (zoomPercent / 100)));
-    const newMetrics = FontMetrics.getMetrics(
-      settings.fontFamily,
-      curEffectiveFontSize
-    );
-    setMetrics(newMetrics);
-    if (rendererRef.current && settings.theme) {
-      rendererRef.current.setTheme(settings.theme);
-    }
-    layoutEngine.setConfig(settings.wrapConfig);
-    lineMap.rebuildAll(Math.floor((viewport.width - 60) / newMetrics.charWidth));
-    requestRender();
-  }, [settings, viewport.width, zoomPercent]);
-
-  // バッファ変更時の行マップ再構築
-  useEffect(() => {
-    lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
-    requestRender();
-  }, [buffer]);
-
   // シンタックスルール
   const getSyntaxRule = useCallback((): SyntaxRule | undefined => {
     return SyntaxHighlighter.buildRuleForType(settings, commonKeywordSets);
@@ -224,11 +206,33 @@ export const EditorView: React.FC<EditorViewProps> = ({
     );
   }, [buffer, lineMap, metrics, viewport, cursor, selection, settings, bookmarkManager, searchHighlight, diffMarks, showModifiedGutter, getSyntaxRule]);
 
+  // 設定変更時の反映
+  useEffect(() => {
+    const curEffectiveFontSize = Math.max(8, Math.round(settings.fontSize * (zoomPercent / 100)));
+    const newMetrics = FontMetrics.getMetrics(
+      settings.fontFamily,
+      curEffectiveFontSize
+    );
+    setMetrics(newMetrics);
+    if (rendererRef.current && settings.theme) {
+      rendererRef.current.setTheme(settings.theme);
+    }
+    layoutEngine.setConfig(settings.wrapConfig);
+    lineMap.rebuildAll(Math.floor((viewport.width - 60) / newMetrics.charWidth));
+    requestRender();
+  }, [settings, viewport.width, zoomPercent, layoutEngine, lineMap, requestRender]);
+
+  // バッファ変更時の行マップ再構築
+  useEffect(() => {
+    lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+    requestRender();
+  }, [buffer, lineMap, metrics.charWidth, viewport.width, requestRender]);
+
   useEffect(() => {
     requestRender();
   }, [requestRender]);
 
-  // カーソル位置情報（ステータスバー用）の算出
+  // カーソル位置情報（ステータスバー用）の算出 & 自動スクロール & IME位置同期
   const updateCursorDetails = useCallback(
     (pos: Position) => {
       const vPos = lineMap.logicalToVisual(pos);
@@ -239,17 +243,44 @@ export const EditorView: React.FC<EditorViewProps> = ({
         : '';
       onCursorChange(pos, vPos.visualColumn, charCode);
 
+      const curLineHeight = metrics.lineHeight + (settings.lineSpacing || 0);
+      const gutterW = rendererRef.current ? rendererRef.current.getGutterWidth(settings.showLineNumbers) : 32;
+      const rulerH = rendererRef.current ? rendererRef.current.getRulerHeight(settings.showRuler) : 20;
+
+      // ビューポート外への移動時に自動スクロール
+      setViewport((prev) => {
+        const curX = gutterW + vPos.visualColumn * metrics.charWidth;
+        const curY = rulerH + vPos.visualLine * curLineHeight;
+
+        let newScrollTop = prev.scrollTop;
+        let newScrollLeft = prev.scrollLeft;
+
+        if (curY < prev.scrollTop + rulerH) {
+          newScrollTop = Math.max(0, curY - rulerH);
+        } else if (curY + curLineHeight > prev.scrollTop + prev.height) {
+          newScrollTop = curY + curLineHeight - prev.height;
+        }
+
+        if (curX < prev.scrollLeft + gutterW) {
+          newScrollLeft = Math.max(0, curX - gutterW);
+        } else if (curX + metrics.charWidth > prev.scrollLeft + prev.width) {
+          newScrollLeft = curX + metrics.charWidth - prev.width;
+        }
+
+        if (newScrollTop !== prev.scrollTop || newScrollLeft !== prev.scrollLeft) {
+          return { ...prev, scrollTop: newScrollTop, scrollLeft: newScrollLeft };
+        }
+        return prev;
+      });
+
       // IME 入力位置の更新
       if (inputBridgeRef.current && rendererRef.current) {
-        const effectiveLineHeight = metrics.lineHeight + (settings.lineSpacing || 0);
-        const gutterW = rendererRef.current.getGutterWidth(settings.showLineNumbers);
-        const rulerH = rendererRef.current.getRulerHeight(settings.showRuler);
         const x = gutterW + vPos.visualColumn * metrics.charWidth - viewport.scrollLeft;
-        const y = rulerH + vPos.visualLine * effectiveLineHeight - viewport.scrollTop;
+        const y = rulerH + vPos.visualLine * curLineHeight - viewport.scrollTop;
         inputBridgeRef.current.updateCursorPosition(x, y);
       }
     },
-    [buffer, lineMap, metrics, viewport, onCursorChange, inputBridgeRef, settings]
+    [buffer, lineMap, metrics, viewport.scrollLeft, viewport.scrollTop, onCursorChange, inputBridgeRef, settings]
   );
 
   // コンテナのリサイズ監視
@@ -272,10 +303,11 @@ export const EditorView: React.FC<EditorViewProps> = ({
 
     if (canvasRef.current) {
       rendererRef.current = new CanvasRenderer(canvasRef.current);
+      requestRender();
     }
 
     return () => ro.disconnect();
-  }, []);
+  }, [requestRender]);
 
   const effectiveLineHeight = metrics.lineHeight + (settings.lineSpacing || 0);
   const totalVisualLines = lineMap.getVisualLineCount();
@@ -354,356 +386,460 @@ export const EditorView: React.FC<EditorViewProps> = ({
     inputBridgeRef.current?.focus();
   }, [buffer, cursor, lineMap, updateCursorDetails, onContentChange, inputBridgeRef]);
 
-  // InputBridge の初期化
+  // Props の最新参照を保持して InputBridge の再生成・フォーカス喪失を完全に防止
+  const cursorRef = useRef(cursor);
+  const selectionRef = useRef(selection);
+  const bufferRef = useRef(buffer);
+  const settingsRef = useRef(settings);
+  const readOnlyRef = useRef(readOnly);
+  const isOverstrikeRef = useRef(isOverstrike);
+  const freeCursorRef = useRef(freeCursor);
+  const preferredVisualColRef = useRef<number | null>(null);
+
+  const bridgeHandlersRef = useRef<InputBridgeHandlers>({} as InputBridgeHandlers);
+
+  useEffect(() => {
+    cursorRef.current = cursor;
+    selectionRef.current = selection;
+    bufferRef.current = buffer;
+    settingsRef.current = settings;
+    readOnlyRef.current = readOnly;
+    isOverstrikeRef.current = isOverstrike;
+    freeCursorRef.current = freeCursor;
+
+    bridgeHandlersRef.current = {
+    onInsertText: (text) => {
+      if (readOnlyRef.current) return;
+      preferredVisualColRef.current = null;
+      const curCursor = cursorRef.current;
+      const curSelection = selectionRef.current;
+      const curBuffer = bufferRef.current;
+
+      if (curSelection) {
+        if (curSelection.isBoxSelect && curSelection.boxStartCol !== undefined && curSelection.boxEndCol !== undefined) {
+          curBuffer.deleteBox(curSelection.start.line, curSelection.end.line, curSelection.boxStartCol, curSelection.boxEndCol);
+        } else {
+          curBuffer.deleteRange(curSelection);
+        }
+        onSelectionChange(null);
+      } else if (isOverstrikeRef.current && text !== '\n' && text !== '\r\n') {
+        // 上書きモード: カーソル位置から文字数分を上書き
+        const curLine = curBuffer.getLine(curCursor.line);
+        const charsToOverwrite = text.length;
+        const availableChars = Math.max(0, curLine.length - curCursor.column);
+        const deleteCount = Math.min(charsToOverwrite, availableChars);
+        if (deleteCount > 0) {
+          curBuffer.deleteRange({
+            start: curCursor,
+            end: { line: curCursor.line, column: curCursor.column + deleteCount },
+            isBoxSelect: false,
+          });
+        }
+      }
+
+      // フリーカーソル: 行末以降にカーソルがある場合、半角空白で埋める
+      let insertPos = curCursor;
+      if (freeCursorRef.current) {
+        const curLine = curBuffer.getLine(curCursor.line);
+        if (curCursor.column > curLine.length) {
+          const padSpaces = ' '.repeat(curCursor.column - curLine.length);
+          curBuffer.insert({ line: curCursor.line, column: curLine.length }, padSpaces);
+          insertPos = { line: curCursor.line, column: curCursor.column };
+        }
+      }
+
+      // 自動インデント処理 (Enter キー時)
+      let textToInsert = text;
+      if (text === '\n' && settingsRef.current.autoIndent) {
+        const curLineText = curBuffer.getLine(curCursor.line);
+        const indentMatch = curLineText.match(/^([ \t]+)/);
+        if (indentMatch) {
+          textToInsert = '\n' + indentMatch[1];
+        }
+      }
+
+      const newPos = curBuffer.insert(insertPos, textToInsert);
+      lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+      updateCursorDetails(newPos);
+      onContentChange();
+    },
+    onDeleteChar: (direction) => {
+      if (readOnlyRef.current) return;
+      preferredVisualColRef.current = null;
+      const curCursor = cursorRef.current;
+      const curSelection = selectionRef.current;
+      const curBuffer = bufferRef.current;
+
+      if (curSelection) {
+        if (curSelection.isBoxSelect && curSelection.boxStartCol !== undefined && curSelection.boxEndCol !== undefined) {
+          curBuffer.deleteBox(curSelection.start.line, curSelection.end.line, curSelection.boxStartCol, curSelection.boxEndCol);
+        } else {
+          curBuffer.deleteRange(curSelection);
+        }
+        onSelectionChange(null);
+        lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+        onContentChange();
+        return;
+      }
+
+      if (direction === 'backspace') {
+        if (curCursor.column > 0) {
+          curBuffer.deleteRange({
+            start: { line: curCursor.line, column: curCursor.column - 1 },
+            end: curCursor,
+            isBoxSelect: false,
+          });
+          const newPos = { line: curCursor.line, column: curCursor.column - 1 };
+          lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+          updateCursorDetails(newPos);
+          onContentChange();
+        } else if (curCursor.line > 0) {
+          const prevLine = curBuffer.getLine(curCursor.line - 1);
+          curBuffer.deleteRange({
+            start: { line: curCursor.line - 1, column: prevLine.length },
+            end: curCursor,
+            isBoxSelect: false,
+          });
+          const newPos = { line: curCursor.line - 1, column: prevLine.length };
+          lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+          updateCursorDetails(newPos);
+          onContentChange();
+        }
+      } else {
+        // delete
+        const currentLine = curBuffer.getLine(curCursor.line);
+        if (curCursor.column < currentLine.length) {
+          curBuffer.deleteRange({
+            start: curCursor,
+            end: { line: curCursor.line, column: curCursor.column + 1 },
+            isBoxSelect: false,
+          });
+          lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+          updateCursorDetails(curCursor);
+          onContentChange();
+        } else if (curCursor.line < curBuffer.getLineCount() - 1) {
+          curBuffer.deleteRange({
+            start: curCursor,
+            end: { line: curCursor.line + 1, column: 0 },
+            isBoxSelect: false,
+          });
+          lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+          updateCursorDetails(curCursor);
+          onContentChange();
+        }
+      }
+    },
+    onMoveCursor: (deltaLine, deltaCol, select, isBoxSelect) => {
+      const curCursor = cursorRef.current;
+      const curBuffer = bufferRef.current;
+      let newPos: Position = { ...curCursor };
+      const currentLineText = curBuffer.getLine(newPos.line);
+
+      if (deltaLine === 0 && deltaCol !== 0) {
+        // 水平移動: 行末・行頭の折り返しに対応
+        preferredVisualColRef.current = null;
+        if (deltaCol < 0) {
+          // 左移動
+          if (newPos.column > 0) {
+            newPos = { line: newPos.line, column: newPos.column - 1 };
+          } else if (newPos.line > 0) {
+            // 前の行の行末へ
+            const prevLineText = curBuffer.getLine(newPos.line - 1);
+            newPos = { line: newPos.line - 1, column: prevLineText.length };
+          }
+        } else {
+          // 右移動
+          if (newPos.column < currentLineText.length) {
+            newPos = { line: newPos.line, column: newPos.column + 1 };
+          } else if (freeCursorRef.current) {
+            newPos = { line: newPos.line, column: newPos.column + 1 };
+          } else if (newPos.line < curBuffer.getLineCount() - 1) {
+            // 次の行の行頭へ
+            newPos = { line: newPos.line + 1, column: 0 };
+          }
+        }
+      } else if (deltaLine !== 0) {
+        // 垂直移動: 表示行・折り返し行および preferredVisualCol を考慮
+        const vPos = lineMap.logicalToVisual(curCursor);
+        if (preferredVisualColRef.current === null) {
+          preferredVisualColRef.current = vPos.visualColumn;
+        }
+        let newVRow = vPos.visualLine + deltaLine;
+        newVRow = Math.max(0, Math.min(newVRow, lineMap.getVisualLineCount() - 1));
+
+        const targetVCol = preferredVisualColRef.current;
+        newPos = lineMap.visualToLogical(newVRow, targetVCol);
+        if (freeCursorRef.current) {
+          newPos = { line: newPos.line, column: targetVCol };
+        }
+      }
+
+      if (select) {
+        const curSelection = selectionRef.current;
+        const vPos = lineMap.logicalToVisual(newPos);
+        if (!curSelection) {
+          onSelectionChange({
+            start: curCursor,
+            end: newPos,
+            isBoxSelect,
+            boxStartCol: lineMap.logicalToVisual(curCursor).visualColumn,
+            boxEndCol: vPos.visualColumn,
+          });
+        } else {
+          onSelectionChange({
+            ...curSelection,
+            end: newPos,
+            isBoxSelect,
+            boxEndCol: vPos.visualColumn,
+          });
+        }
+      } else {
+        onSelectionChange(null);
+      }
+
+      updateCursorDetails(newPos);
+    },
+    onSetCursor: (pos, select) => {
+      preferredVisualColRef.current = null;
+      if (!select) onSelectionChange(null);
+      updateCursorDetails(pos);
+    },
+    onBoxDrag: (sLine, eLine, sCol, eCol) => {
+      onSelectionChange({
+        start: { line: sLine, column: 0 },
+        end: { line: eLine, column: 0 },
+        isBoxSelect: true,
+        boxStartCol: sCol,
+        boxEndCol: eCol,
+      });
+    },
+    onCopy: () => {
+      const curSelection = selectionRef.current;
+      if (!curSelection) return;
+      const textToCopy = bufferRef.current.getTextInRange(curSelection);
+      navigator.clipboard.writeText(textToCopy);
+    },
+    onCut: () => {
+      if (readOnlyRef.current) return;
+      const curSelection = selectionRef.current;
+      const curBuffer = bufferRef.current;
+      if (!curSelection) return;
+      const textToCut = curBuffer.getTextInRange(curSelection);
+      navigator.clipboard.writeText(textToCut);
+      const newPos = curSelection.start;
+      if (curSelection.isBoxSelect && curSelection.boxStartCol !== undefined && curSelection.boxEndCol !== undefined) {
+        curBuffer.deleteBox(curSelection.start.line, curSelection.end.line, curSelection.boxStartCol, curSelection.boxEndCol);
+      } else {
+        curBuffer.deleteRange(curSelection);
+      }
+      onSelectionChange(null);
+      lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+      updateCursorDetails(newPos);
+      onContentChange();
+    },
+    onPaste: (text) => {
+      if (readOnlyRef.current) return;
+      const curSelection = selectionRef.current;
+      const curBuffer = bufferRef.current;
+      const curCursor = cursorRef.current;
+      let targetPos = curCursor;
+      if (curSelection) {
+        curBuffer.deleteRange(curSelection);
+        targetPos = curSelection.start;
+        onSelectionChange(null);
+      }
+      const newPos = curBuffer.insert(targetPos, text);
+      lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+      updateCursorDetails(newPos);
+      onContentChange();
+    },
+    onUndo,
+    onRedo,
+    onBookmarkToggle: () => {
+      bookmarkManager.toggle(cursorRef.current.line);
+      requestRender();
+    },
+    onBookmarkNext: () => {
+      const next = bookmarkManager.getNext(cursorRef.current.line, bufferRef.current.getLineCount());
+      if (next !== null) {
+        updateCursorDetails({ line: next, column: 0 });
+      }
+    },
+    onBookmarkPrev: () => {
+      const prev = bookmarkManager.getPrev(cursorRef.current.line);
+      if (prev !== null) {
+        updateCursorDetails({ line: prev, column: 0 });
+      }
+    },
+    onBracketJump: () => {
+      const match = BracketMatcher.findMatchingBracket(bufferRef.current, cursorRef.current);
+      if (match) {
+        updateCursorDetails(match);
+      }
+    },
+    onEscape: () => {
+      onClearSearchHighlight?.();
+    },
+    onNavigateHome: (select, isFileTop) => {
+      preferredVisualColRef.current = null;
+      const curCursor = cursorRef.current;
+      const curBuffer = bufferRef.current;
+      let newPos: Position;
+      if (isFileTop) {
+        newPos = { line: 0, column: 0 };
+      } else {
+        const curLineText = curBuffer.getLine(curCursor.line);
+        const firstNonWs = curLineText.search(/\S/);
+        const targetCol = curCursor.column === firstNonWs ? 0 : firstNonWs !== -1 ? firstNonWs : 0;
+        newPos = { line: curCursor.line, column: targetCol };
+      }
+      if (select) {
+        onSelectionChange({
+          start: selectionRef.current ? selectionRef.current.start : curCursor,
+          end: newPos,
+          isBoxSelect: false,
+        });
+      } else {
+        onSelectionChange(null);
+      }
+      updateCursorDetails(newPos);
+    },
+    onNavigateEnd: (select, isFileBottom) => {
+      preferredVisualColRef.current = null;
+      const curCursor = cursorRef.current;
+      const curBuffer = bufferRef.current;
+      let newPos: Position;
+      if (isFileBottom) {
+        const lastIdx = curBuffer.getLineCount() - 1;
+        newPos = { line: lastIdx, column: curBuffer.getLine(lastIdx).length };
+      } else {
+        newPos = { line: curCursor.line, column: curBuffer.getLine(curCursor.line).length };
+      }
+      if (select) {
+        onSelectionChange({
+          start: selectionRef.current ? selectionRef.current.start : curCursor,
+          end: newPos,
+          isBoxSelect: false,
+        });
+      } else {
+        onSelectionChange(null);
+      }
+      updateCursorDetails(newPos);
+    },
+    onNavigatePage: (direction, select) => {
+      const curCursor = cursorRef.current;
+      const curBuffer = bufferRef.current;
+      const linesPerPage = Math.max(1, Math.floor(viewport.height / effectiveLineHeight) - 1);
+      const delta = direction === 'up' ? -linesPerPage : linesPerPage;
+      const targetLine = Math.max(0, Math.min(curBuffer.getLineCount() - 1, curCursor.line + delta));
+      const newPos = { line: targetLine, column: Math.min(curCursor.column, curBuffer.getLine(targetLine).length) };
+
+      setViewport((prev) => ({
+        ...prev,
+        scrollTop: Math.max(0, Math.min(maxScrollY, prev.scrollTop + delta * effectiveLineHeight)),
+      }));
+
+      if (select) {
+        onSelectionChange({
+          start: selectionRef.current ? selectionRef.current.start : curCursor,
+          end: newPos,
+          isBoxSelect: false,
+        });
+      } else {
+        onSelectionChange(null);
+      }
+      updateCursorDetails(newPos);
+    },
+    onNavigateWord: (direction, select) => {
+      preferredVisualColRef.current = null;
+      const curCursor = cursorRef.current;
+      const lineText = bufferRef.current.getLine(curCursor.line);
+      let col = curCursor.column;
+      const isWord = (ch: string) => /[a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(ch);
+
+      if (direction === 'left') {
+        if (col > 0) {
+          col--;
+          while (col > 0 && !isWord(lineText[col])) col--;
+          while (col > 0 && isWord(lineText[col - 1])) col--;
+        }
+      } else {
+        if (col < lineText.length) {
+          col++;
+          while (col < lineText.length && isWord(lineText[col])) col++;
+          while (col < lineText.length && !isWord(lineText[col])) col++;
+        }
+      }
+
+      const newPos = { line: curCursor.line, column: col };
+      if (select) {
+        onSelectionChange({
+          start: selectionRef.current ? selectionRef.current.start : curCursor,
+          end: newPos,
+          isBoxSelect: false,
+        });
+      } else {
+        onSelectionChange(null);
+      }
+      updateCursorDetails(newPos);
+    },
+    onToggleOverstrike,
+    onZoomWheel: (direction: number) => onZoomChange?.(direction),
+    onWordComplete: handleTriggerWordCompletion,
+    onIncrementalSearch: (backward) => onOpenIncrementalSearch?.(backward),
+    onSelectAll: () => {
+      const curBuffer = bufferRef.current;
+      const lastIdx = curBuffer.getLineCount() - 1;
+      const lastLineLen = curBuffer.getLine(lastIdx).length;
+      onSelectionChange({
+        start: { line: 0, column: 0 },
+        end: { line: lastIdx, column: lastLineLen },
+        isBoxSelect: false,
+      });
+      updateCursorDetails({ line: lastIdx, column: lastLineLen });
+    },
+    onSave,
+    onFind: onOpenSearch,
+    onFindNext,
+    onFindPrev,
+    onReplace: onOpenReplace,
+    onJump: onOpenJump,
+    onScroll: (dx, dy) => {
+      setViewport((prev) => ({
+        ...prev,
+        scrollTop: Math.max(0, Math.min(prev.scrollTop + dy, maxScrollY)),
+        scrollLeft: Math.max(0, Math.min(prev.scrollLeft + dx, maxScrollX)),
+      }));
+    },
+    };
+  });
+
+  // InputBridge の初期化 (マウント時に1度だけ生成し、フォーカスを維持)
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const bridge = new InputBridge(container, {
-      onInsertText: (text) => {
-        if (readOnly) return;
-        if (selection) {
-          if (selection.isBoxSelect && selection.boxStartCol !== undefined && selection.boxEndCol !== undefined) {
-            buffer.deleteBox(selection.start.line, selection.end.line, selection.boxStartCol, selection.boxEndCol);
-          } else {
-            buffer.deleteRange(selection);
-          }
-          onSelectionChange(null);
-        } else if (isOverstrike && text !== '\n' && text !== '\r\n') {
-          // 上書きモード: カーソル位置から文字数分を上書き
-          const curLine = buffer.getLine(cursor.line);
-          const charsToOverwrite = text.length;
-          const availableChars = Math.max(0, curLine.length - cursor.column);
-          const deleteCount = Math.min(charsToOverwrite, availableChars);
-          if (deleteCount > 0) {
-            buffer.deleteRange({
-              start: cursor,
-              end: { line: cursor.line, column: cursor.column + deleteCount },
-              isBoxSelect: false,
-            });
-          }
-        }
-
-        // フリーカーソル: 行末以降にカーソルがある場合、半角空白で埋める
-        let insertPos = cursor;
-        if (freeCursor) {
-          const curLine = buffer.getLine(cursor.line);
-          if (cursor.column > curLine.length) {
-            const padSpaces = ' '.repeat(cursor.column - curLine.length);
-            buffer.insert({ line: cursor.line, column: curLine.length }, padSpaces);
-            insertPos = { line: cursor.line, column: cursor.column };
-          }
-        }
-
-        // 自動インデント処理 (Enter キー時)
-        let textToInsert = text;
-        if (text === '\n' && settings.autoIndent) {
-          const curLineText = buffer.getLine(cursor.line);
-          const indentMatch = curLineText.match(/^([ \t]+)/);
-          if (indentMatch) {
-            textToInsert = '\n' + indentMatch[1];
-          }
-        }
-
-        const newPos = buffer.insert(insertPos, textToInsert);
-        lineMap.rebuildAll();
-        updateCursorDetails(newPos);
-        onContentChange();
-      },
-      onDeleteChar: (direction) => {
-        if (readOnly) return;
-        if (selection) {
-          if (selection.isBoxSelect && selection.boxStartCol !== undefined && selection.boxEndCol !== undefined) {
-            buffer.deleteBox(selection.start.line, selection.end.line, selection.boxStartCol, selection.boxEndCol);
-          } else {
-            buffer.deleteRange(selection);
-          }
-          onSelectionChange(null);
-          lineMap.rebuildAll();
-          onContentChange();
-          return;
-        }
-
-        if (direction === 'backspace') {
-          if (cursor.column > 0) {
-            buffer.deleteRange({
-              start: { line: cursor.line, column: cursor.column - 1 },
-              end: cursor,
-              isBoxSelect: false,
-            });
-            const newPos = { line: cursor.line, column: cursor.column - 1 };
-            lineMap.rebuildAll();
-            updateCursorDetails(newPos);
-            onContentChange();
-          } else if (cursor.line > 0) {
-            const prevLine = buffer.getLine(cursor.line - 1);
-            buffer.deleteRange({
-              start: { line: cursor.line - 1, column: prevLine.length },
-              end: cursor,
-              isBoxSelect: false,
-            });
-            const newPos = { line: cursor.line - 1, column: prevLine.length };
-            lineMap.rebuildAll();
-            updateCursorDetails(newPos);
-            onContentChange();
-          }
-        } else {
-          // delete
-          const currentLine = buffer.getLine(cursor.line);
-          if (cursor.column < currentLine.length) {
-            buffer.deleteRange({
-              start: cursor,
-              end: { line: cursor.line, column: cursor.column + 1 },
-              isBoxSelect: false,
-            });
-            lineMap.rebuildAll();
-            onContentChange();
-          } else if (cursor.line < buffer.getLineCount() - 1) {
-            buffer.deleteRange({
-              start: cursor,
-              end: { line: cursor.line + 1, column: 0 },
-              isBoxSelect: false,
-            });
-            lineMap.rebuildAll();
-            onContentChange();
-          }
-        }
-      },
-      onMoveCursor: (deltaLine, deltaCol, select, isBoxSelect) => {
-        const vPos = lineMap.logicalToVisual(cursor);
-        let newVRow = vPos.visualLine + deltaLine;
-        newVRow = Math.max(0, Math.min(newVRow, lineMap.getVisualLineCount() - 1));
-
-        let newVCol = vPos.visualColumn + deltaCol;
-        newVCol = Math.max(0, newVCol);
-
-        let newPos = lineMap.visualToLogical(newVRow, newVCol);
-        if (freeCursor) {
-          newPos = { line: newPos.line, column: newVCol };
-        }
-
-        if (select) {
-          if (!selection) {
-            onSelectionChange({
-              start: cursor,
-              end: newPos,
-              isBoxSelect,
-              boxStartCol: vPos.visualColumn,
-              boxEndCol: newVCol,
-            });
-          } else {
-            onSelectionChange({
-              ...selection,
-              end: newPos,
-              isBoxSelect,
-              boxEndCol: newVCol,
-            });
-          }
-        } else {
-          onSelectionChange(null);
-        }
-
-        updateCursorDetails(newPos);
-      },
-      onSetCursor: (pos, select, _isBoxSelect) => {
-        if (!select) onSelectionChange(null);
-        updateCursorDetails(pos);
-      },
-      onBoxDrag: (sLine, eLine, sCol, eCol) => {
-        onSelectionChange({
-          start: { line: sLine, column: 0 },
-          end: { line: eLine, column: 0 },
-          isBoxSelect: true,
-          boxStartCol: sCol,
-          boxEndCol: eCol,
-        });
-      },
-      onCopy: () => {
-        if (!selection) return;
-        const textToCopy = buffer.getTextInRange(selection);
-        navigator.clipboard.writeText(textToCopy);
-      },
-      onCut: () => {
-        if (!selection) return;
-        const textToCut = buffer.getTextInRange(selection);
-        navigator.clipboard.writeText(textToCut);
-        if (selection.isBoxSelect && selection.boxStartCol !== undefined && selection.boxEndCol !== undefined) {
-          buffer.deleteBox(selection.start.line, selection.end.line, selection.boxStartCol, selection.boxEndCol);
-        } else {
-          buffer.deleteRange(selection);
-        }
-        onSelectionChange(null);
-        lineMap.rebuildAll();
-        onContentChange();
-      },
-      onPaste: (text) => {
-        if (selection) {
-          buffer.deleteRange(selection);
-          onSelectionChange(null);
-        }
-        const newPos = buffer.insert(cursor, text);
-        lineMap.rebuildAll();
-        updateCursorDetails(newPos);
-        onContentChange();
-      },
-      onUndo,
-      onRedo,
-      onBookmarkToggle: () => {
-        bookmarkManager.toggle(cursor.line);
-        requestRender();
-      },
-      onBookmarkNext: () => {
-        const next = bookmarkManager.getNext(cursor.line, buffer.getLineCount());
-        if (next !== null) {
-          updateCursorDetails({ line: next, column: 0 });
-        }
-      },
-      onBookmarkPrev: () => {
-        const prev = bookmarkManager.getPrev(cursor.line);
-        if (prev !== null) {
-          updateCursorDetails({ line: prev, column: 0 });
-        }
-      },
-      onBracketJump: () => {
-        const match = BracketMatcher.findMatchingBracket(buffer, cursor);
-        if (match) {
-          updateCursorDetails(match);
-        }
-      },
-      onEscape: () => {
-        onClearSearchHighlight?.();
-      },
-      onNavigateHome: (select, isFileTop) => {
-        let newPos: Position;
-        if (isFileTop) {
-          newPos = { line: 0, column: 0 };
-        } else {
-          const curLineText = buffer.getLine(cursor.line);
-          const firstNonWs = curLineText.search(/\S/);
-          const targetCol = cursor.column === firstNonWs ? 0 : firstNonWs !== -1 ? firstNonWs : 0;
-          newPos = { line: cursor.line, column: targetCol };
-        }
-        if (select) {
-          onSelectionChange({
-            start: selection ? selection.start : cursor,
-            end: newPos,
-            isBoxSelect: false,
-          });
-        } else {
-          onSelectionChange(null);
-        }
-        updateCursorDetails(newPos);
-      },
-      onNavigateEnd: (select, isFileBottom) => {
-        let newPos: Position;
-        if (isFileBottom) {
-          const lastIdx = buffer.getLineCount() - 1;
-          newPos = { line: lastIdx, column: buffer.getLine(lastIdx).length };
-        } else {
-          newPos = { line: cursor.line, column: buffer.getLine(cursor.line).length };
-        }
-        if (select) {
-          onSelectionChange({
-            start: selection ? selection.start : cursor,
-            end: newPos,
-            isBoxSelect: false,
-          });
-        } else {
-          onSelectionChange(null);
-        }
-        updateCursorDetails(newPos);
-      },
-      onNavigatePage: (direction, select) => {
-        const linesPerPage = Math.max(1, Math.floor(viewport.height / effectiveLineHeight) - 1);
-        const delta = direction === 'up' ? -linesPerPage : linesPerPage;
-        const targetLine = Math.max(0, Math.min(buffer.getLineCount() - 1, cursor.line + delta));
-        const newPos = { line: targetLine, column: Math.min(cursor.column, buffer.getLine(targetLine).length) };
-
-        setViewport((prev) => ({
-          ...prev,
-          scrollTop: Math.max(0, Math.min(maxScrollY, prev.scrollTop + delta * effectiveLineHeight)),
-        }));
-
-        if (select) {
-          onSelectionChange({
-            start: selection ? selection.start : cursor,
-            end: newPos,
-            isBoxSelect: false,
-          });
-        } else {
-          onSelectionChange(null);
-        }
-        updateCursorDetails(newPos);
-      },
-      onNavigateWord: (direction, select) => {
-        const lineText = buffer.getLine(cursor.line);
-        let col = cursor.column;
-        const isWord = (ch: string) => /[a-zA-Z0-9_\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(ch);
-
-        if (direction === 'left') {
-          if (col > 0) {
-            col--;
-            while (col > 0 && !isWord(lineText[col])) col--;
-            while (col > 0 && isWord(lineText[col - 1])) col--;
-          }
-        } else {
-          if (col < lineText.length) {
-            col++;
-            while (col < lineText.length && isWord(lineText[col])) col++;
-            while (col < lineText.length && !isWord(lineText[col])) col++;
-          }
-        }
-
-        const newPos = { line: cursor.line, column: col };
-        if (select) {
-          onSelectionChange({
-            start: selection ? selection.start : cursor,
-            end: newPos,
-            isBoxSelect: false,
-          });
-        } else {
-          onSelectionChange(null);
-        }
-        updateCursorDetails(newPos);
-      },
-      onToggleOverstrike,
-      onZoomWheel: (direction: number) => onZoomChange?.(direction),
-      onWordComplete: handleTriggerWordCompletion,
-      onIncrementalSearch: (backward) => onOpenIncrementalSearch?.(backward),
-      onScroll: (dx, dy) => {
-        setViewport((prev) => ({
-          ...prev,
-          scrollTop: Math.max(0, Math.min(prev.scrollTop + dy, maxScrollY)),
-          scrollLeft: Math.max(0, Math.min(prev.scrollLeft + dx, maxScrollX)),
-        }));
+    const handlersProxy: InputBridgeHandlers = new Proxy({} as InputBridgeHandlers, {
+      get: (_target, prop: keyof InputBridgeHandlers) => {
+        return bridgeHandlersRef.current[prop];
       },
     });
 
+    const bridge = new InputBridge(container, handlersProxy);
     inputBridgeRef.current = bridge;
-    return () => bridge.destroy();
-  }, [
-    buffer,
-    lineMap,
-    metrics,
-    cursor,
-    selection,
-    onSelectionChange,
-    onContentChange,
-    onUndo,
-    onRedo,
-    updateCursorDetails,
-    settings,
-    maxScrollY,
-    maxScrollX,
-    effectiveLineHeight,
-    viewport.height,
-    onToggleOverstrike,
-    isOverstrike,
-    freeCursor,
-    onZoomChange,
-    handleTriggerWordCompletion,
-    onOpenIncrementalSearch,
-  ]);
+
+    // 即座にフォーカスを当てる
+    bridge.focus();
+    const timer = setTimeout(() => {
+      bridge.focus();
+    }, 50);
+
+    return () => {
+      clearTimeout(timer);
+      bridge.destroy();
+      inputBridgeRef.current = null;
+    };
+  }, []);
 
   // マウスイベント (クリック & ドラッグによる選択 / Alt 矩形選択 / ガタークリック)
   const isMouseDownRef = useRef(false);
@@ -714,6 +850,9 @@ export const EditorView: React.FC<EditorViewProps> = ({
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button === 2) return; // 右クリックはコンテキストメニューへ
+    // クリック時に即座に不可視 textarea へフォーカス付与
+    inputBridgeRef.current?.focus();
+
     if (!rendererRef.current) return;
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -726,39 +865,40 @@ export const EditorView: React.FC<EditorViewProps> = ({
 
     if (mouseY < rulerH) return; // ルーラー領域
 
-    const vRow = Math.floor((mouseY - rulerH + viewport.scrollTop) / effectiveLineHeight);
-    const vCol = Math.round((mouseX - gutterW + viewport.scrollLeft) / metrics.charWidth);
-    const pos = lineMap.visualToLogical(vRow, Math.max(0, vCol));
+    const vRow = Math.max(0, Math.floor((mouseY - rulerH + viewport.scrollTop) / effectiveLineHeight));
+    const vCol = Math.max(0, Math.round((mouseX - gutterW + viewport.scrollLeft) / metrics.charWidth));
+    const pos = lineMap.visualToLogical(vRow, vCol);
+    const finalPos = freeCursor ? { line: pos.line, column: vCol } : pos;
 
     // ガター（行番号・ブックマーク領域）クリック
     if (mouseX < gutterW) {
       if (mouseX < 16) {
-        bookmarkManager.toggle(pos.line);
+        bookmarkManager.toggle(finalPos.line);
         requestRender();
         return;
       }
       isMouseDownRef.current = true;
       isGutterDragRef.current = true;
-      gutterStartLineRef.current = pos.line;
-      const curLineLen = buffer.getLine(pos.line).length;
+      gutterStartLineRef.current = finalPos.line;
+      const curLineLen = buffer.getLine(finalPos.line).length;
       onSelectionChange({
-        start: { line: pos.line, column: 0 },
-        end: { line: pos.line, column: curLineLen },
+        start: { line: finalPos.line, column: 0 },
+        end: { line: finalPos.line, column: curLineLen },
         isBoxSelect: false,
       });
-      updateCursorDetails({ line: pos.line, column: curLineLen });
+      updateCursorDetails({ line: finalPos.line, column: curLineLen });
       return;
     }
 
     // Ctrl + クリックで URL / メールアドレスを開く (サクラエディタ標準)
     if (e.ctrlKey) {
-      const lineText = buffer.getLine(pos.line);
+      const lineText = buffer.getLine(finalPos.line);
       const urlMatches = lineText.match(/(https?:\/\/[^\s"'<>\u3000\uff08\uff09()]+|mailto:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g);
       if (urlMatches) {
         for (const u of urlMatches) {
           const uStart = lineText.indexOf(u);
           const uEnd = uStart + u.length;
-          if (pos.column >= uStart && pos.column <= uEnd) {
+          if (finalPos.column >= uStart && finalPos.column <= uEnd) {
             window.open(u, '_blank');
             return;
           }
@@ -768,22 +908,24 @@ export const EditorView: React.FC<EditorViewProps> = ({
 
     isMouseDownRef.current = true;
     isGutterDragRef.current = false;
-    dragStartLogicalRef.current = pos;
+    dragStartLogicalRef.current = finalPos;
     dragStartVisualColRef.current = vCol;
+    preferredVisualColRef.current = vCol;
 
     const isAlt = e.altKey;
 
     if (!e.shiftKey) {
       onSelectionChange(null);
-      updateCursorDetails(pos);
+      updateCursorDetails(finalPos);
     } else {
       onSelectionChange({
         start: cursor,
-        end: pos,
+        end: finalPos,
         isBoxSelect: isAlt,
         boxStartCol: dragStartVisualColRef.current,
         boxEndCol: vCol,
       });
+      updateCursorDetails(finalPos);
     }
   };
 
@@ -798,13 +940,14 @@ export const EditorView: React.FC<EditorViewProps> = ({
     const gutterW = rendererRef.current.getGutterWidth(settings.showLineNumbers);
     const rulerH = rendererRef.current.getRulerHeight(settings.showRuler);
 
-    const vRow = Math.floor((mouseY - rulerH + viewport.scrollTop) / effectiveLineHeight);
-    const vCol = Math.round((mouseX - gutterW + viewport.scrollLeft) / metrics.charWidth);
-    const pos = lineMap.visualToLogical(vRow, Math.max(0, vCol));
+    const vRow = Math.max(0, Math.floor((mouseY - rulerH + viewport.scrollTop) / effectiveLineHeight));
+    const vCol = Math.max(0, Math.round((mouseX - gutterW + viewport.scrollLeft) / metrics.charWidth));
+    const pos = lineMap.visualToLogical(vRow, vCol);
+    const finalPos = freeCursor ? { line: pos.line, column: vCol } : pos;
 
     if (isGutterDragRef.current) {
-      const sLine = Math.min(gutterStartLineRef.current, pos.line);
-      const eLine = Math.max(gutterStartLineRef.current, pos.line);
+      const sLine = Math.min(gutterStartLineRef.current, finalPos.line);
+      const eLine = Math.max(gutterStartLineRef.current, finalPos.line);
       const endLineLen = buffer.getLine(eLine).length;
       onSelectionChange({
         start: { line: sLine, column: 0 },
@@ -818,13 +961,13 @@ export const EditorView: React.FC<EditorViewProps> = ({
     const isAlt = e.altKey;
     onSelectionChange({
       start: dragStartLogicalRef.current,
-      end: pos,
+      end: finalPos,
       isBoxSelect: isAlt,
       boxStartCol: dragStartVisualColRef.current,
       boxEndCol: vCol,
     });
 
-    updateCursorDetails(pos);
+    updateCursorDetails(finalPos);
   };
 
   const handleMouseUp = () => {
@@ -834,6 +977,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
 
   // ダブルクリック（単語選択）
   const handleDoubleClick = (e: React.MouseEvent) => {
+    inputBridgeRef.current?.focus();
     if (!rendererRef.current) return;
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -845,9 +989,9 @@ export const EditorView: React.FC<EditorViewProps> = ({
 
     if (mouseY < rulerH || mouseX < gutterW) return;
 
-    const vRow = Math.floor((mouseY - rulerH + viewport.scrollTop) / effectiveLineHeight);
-    const vCol = Math.round((mouseX - gutterW + viewport.scrollLeft) / metrics.charWidth);
-    const pos = lineMap.visualToLogical(vRow, Math.max(0, vCol));
+    const vRow = Math.max(0, Math.floor((mouseY - rulerH + viewport.scrollTop) / effectiveLineHeight));
+    const vCol = Math.max(0, Math.round((mouseX - gutterW + viewport.scrollLeft) / metrics.charWidth));
+    const pos = lineMap.visualToLogical(vRow, vCol);
 
     const lineText = buffer.getLine(pos.line);
     if (!lineText) return;
@@ -1093,6 +1237,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
   return (
     <div
       ref={containerRef}
+      tabIndex={0}
       style={{
         position: 'relative',
         flexGrow: 1,
@@ -1101,6 +1246,13 @@ export const EditorView: React.FC<EditorViewProps> = ({
         overflow: 'hidden',
         cursor: 'text',
         backgroundColor: '#ffffef',
+        outline: 'none',
+      }}
+      onFocus={() => {
+        inputBridgeRef.current?.focus();
+      }}
+      onClick={() => {
+        inputBridgeRef.current?.focus();
       }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -1120,6 +1272,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
 
       {/* 垂直スクロールバー (Win32クラシックスタイル) */}
       <div
+        onMouseDown={(e) => e.stopPropagation()}
         style={{
           position: 'absolute',
           top: 0,
@@ -1205,6 +1358,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
 
       {/* 水平スクロールバー (Win32クラシックスタイル) */}
       <div
+        onMouseDown={(e) => e.stopPropagation()}
         style={{
           position: 'absolute',
           bottom: 0,
