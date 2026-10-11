@@ -61,6 +61,8 @@ interface EditorViewProps {
   commonKeywordSets?: Array<{ id?: number; name: string; caseSensitive?: boolean; keywords: string[] }>;
   onSave?: () => void;
   onOpenJump?: () => void;
+  /** 内容を変更する直前に呼ばれる (Undo スナップショット保存用) */
+  onBeforeChange?: () => void;
 }
 
 const SYNTAX_KEYWORDS: Record<string, string[]> = {
@@ -125,10 +127,14 @@ export const EditorView: React.FC<EditorViewProps> = ({
   commonKeywordSets,
   onSave,
   onOpenJump,
+  onBeforeChange,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<CanvasRenderer | null>(null);
+
+  // IME 変換中 (未確定) 文字列
+  const [imeText, setImeText] = useState<string | null>(null);
 
   // 単語補完状態
   const [isCompletionOpen, setIsCompletionOpen] = useState(false);
@@ -189,7 +195,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
       rule,
       undefined,
       settings.wrapConfig.wrapMode === 'column' ? settings.wrapConfig.wrapColumn : 0,
-      null,
+      imeText ? { text: imeText, cursor: imeText.length } : null,
       settings.showSymbols,
       bookmarkManager,
       matchingBracket,
@@ -204,7 +210,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
       diffMarks,
       settings.colorSettings
     );
-  }, [buffer, lineMap, metrics, viewport, cursor, selection, settings, bookmarkManager, searchHighlight, diffMarks, showModifiedGutter, getSyntaxRule]);
+  }, [buffer, lineMap, metrics, viewport, cursor, selection, settings, bookmarkManager, searchHighlight, diffMarks, showModifiedGutter, getSyntaxRule, imeText]);
 
   // 設定変更時の反映
   useEffect(() => {
@@ -222,11 +228,26 @@ export const EditorView: React.FC<EditorViewProps> = ({
     requestRender();
   }, [settings, viewport.width, zoomPercent, layoutEngine, lineMap, requestRender]);
 
+  // 行マップの再構築 (構築時のバッファ版数を記録し、二重構築を避ける)
+  const lastBuiltVersionRef = useRef(-1);
+  const rebuildLayout = useCallback(() => {
+    lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+    lastBuiltVersionRef.current = buffer.getVersion();
+  }, [lineMap, viewport.width, metrics.charWidth, buffer]);
+
   // バッファ変更時の行マップ再構築
   useEffect(() => {
-    lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+    rebuildLayout();
     requestRender();
-  }, [buffer, lineMap, metrics.charWidth, viewport.width, requestRender]);
+  }, [buffer, rebuildLayout, requestRender]);
+
+  // Undo/Redo・貼り付け・他ペインでの編集など、buffer を直接更新した場合の再構築
+  useEffect(() => {
+    if (lastBuiltVersionRef.current !== buffer.getVersion()) {
+      rebuildLayout();
+      requestRender();
+    }
+  });
 
   useEffect(() => {
     requestRender();
@@ -374,6 +395,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
       startCol--;
     }
 
+    onBeforeChange?.();
     buffer.deleteRange({
       start: { line: cursor.line, column: startCol },
       end: cursor,
@@ -395,6 +417,18 @@ export const EditorView: React.FC<EditorViewProps> = ({
   const isOverstrikeRef = useRef(isOverstrike);
   const freeCursorRef = useRef(freeCursor);
   const preferredVisualColRef = useRef<number | null>(null);
+  // 連続入力を 1 回の Undo にまとめるための状態
+  const lastTypingRef = useRef<{ time: number; line: number; column: number } | null>(null);
+  const beginEdit = (typing?: { line: number; column: number }) => {
+    const now = Date.now();
+    const last = lastTypingRef.current;
+    if (typing && last && now - last.time < 1000 && last.line === typing.line && last.column === typing.column) {
+      lastTypingRef.current = { time: now, line: typing.line, column: typing.column };
+      return; // 直前の連続入力と同一操作
+    }
+    lastTypingRef.current = null;
+    onBeforeChange?.();
+  };
 
   const bridgeHandlersRef = useRef<InputBridgeHandlers>({} as InputBridgeHandlers);
 
@@ -414,6 +448,8 @@ export const EditorView: React.FC<EditorViewProps> = ({
       const curCursor = cursorRef.current;
       const curSelection = selectionRef.current;
       const curBuffer = bufferRef.current;
+      const isPlainTyping = !curSelection && !text.includes('\n') && !text.includes('\r');
+      beginEdit(isPlainTyping ? curCursor : undefined);
 
       if (curSelection) {
         if (curSelection.isBoxSelect && curSelection.boxStartCol !== undefined && curSelection.boxEndCol !== undefined) {
@@ -459,7 +495,8 @@ export const EditorView: React.FC<EditorViewProps> = ({
       }
 
       const newPos = curBuffer.insert(insertPos, textToInsert);
-      lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+      rebuildLayout();
+      if (isPlainTyping) lastTypingRef.current = { time: Date.now(), line: newPos.line, column: newPos.column };
       updateCursorDetails(newPos);
       onContentChange();
     },
@@ -469,6 +506,13 @@ export const EditorView: React.FC<EditorViewProps> = ({
       const curCursor = cursorRef.current;
       const curSelection = selectionRef.current;
       const curBuffer = bufferRef.current;
+      const canDelete = curSelection
+        ? true
+        : direction === 'backspace'
+          ? curCursor.column > 0 || curCursor.line > 0
+          : curCursor.column < curBuffer.getLine(curCursor.line).length || curCursor.line < curBuffer.getLineCount() - 1;
+      if (!canDelete) return;
+      beginEdit();
 
       if (curSelection) {
         if (curSelection.isBoxSelect && curSelection.boxStartCol !== undefined && curSelection.boxEndCol !== undefined) {
@@ -477,7 +521,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
           curBuffer.deleteRange(curSelection);
         }
         onSelectionChange(null);
-        lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+        rebuildLayout();
         onContentChange();
         return;
       }
@@ -490,7 +534,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
             isBoxSelect: false,
           });
           const newPos = { line: curCursor.line, column: curCursor.column - 1 };
-          lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+          rebuildLayout();
           updateCursorDetails(newPos);
           onContentChange();
         } else if (curCursor.line > 0) {
@@ -501,7 +545,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
             isBoxSelect: false,
           });
           const newPos = { line: curCursor.line - 1, column: prevLine.length };
-          lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+          rebuildLayout();
           updateCursorDetails(newPos);
           onContentChange();
         }
@@ -514,7 +558,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
             end: { line: curCursor.line, column: curCursor.column + 1 },
             isBoxSelect: false,
           });
-          lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+          rebuildLayout();
           updateCursorDetails(curCursor);
           onContentChange();
         } else if (curCursor.line < curBuffer.getLineCount() - 1) {
@@ -523,13 +567,14 @@ export const EditorView: React.FC<EditorViewProps> = ({
             end: { line: curCursor.line + 1, column: 0 },
             isBoxSelect: false,
           });
-          lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+          rebuildLayout();
           updateCursorDetails(curCursor);
           onContentChange();
         }
       }
     },
     onMoveCursor: (deltaLine, deltaCol, select, isBoxSelect) => {
+      lastTypingRef.current = null;
       const curCursor = cursorRef.current;
       const curBuffer = bufferRef.current;
       let newPos: Position = { ...curCursor };
@@ -626,6 +671,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
       if (!curSelection) return;
       const textToCut = curBuffer.getTextInRange(curSelection);
       navigator.clipboard.writeText(textToCut);
+      beginEdit();
       const newPos = curSelection.start;
       if (curSelection.isBoxSelect && curSelection.boxStartCol !== undefined && curSelection.boxEndCol !== undefined) {
         curBuffer.deleteBox(curSelection.start.line, curSelection.end.line, curSelection.boxStartCol, curSelection.boxEndCol);
@@ -633,7 +679,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
         curBuffer.deleteRange(curSelection);
       }
       onSelectionChange(null);
-      lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+      rebuildLayout();
       updateCursorDetails(newPos);
       onContentChange();
     },
@@ -643,13 +689,14 @@ export const EditorView: React.FC<EditorViewProps> = ({
       const curBuffer = bufferRef.current;
       const curCursor = cursorRef.current;
       let targetPos = curCursor;
+      beginEdit();
       if (curSelection) {
         curBuffer.deleteRange(curSelection);
         targetPos = curSelection.start;
         onSelectionChange(null);
       }
       const newPos = curBuffer.insert(targetPos, text);
-      lineMap.rebuildAll(Math.floor((viewport.width - 60) / metrics.charWidth));
+      rebuildLayout();
       updateCursorDetails(newPos);
       onContentChange();
     },
@@ -787,6 +834,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
     onZoomWheel: (direction: number) => onZoomChange?.(direction),
     onWordComplete: handleTriggerWordCompletion,
     onIncrementalSearch: (backward) => onOpenIncrementalSearch?.(backward),
+    onCompositionChange: (text) => setImeText(text),
     onSelectAll: () => {
       const curBuffer = bufferRef.current;
       const lastIdx = curBuffer.getLineCount() - 1;
@@ -852,6 +900,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
     if (e.button === 2) return; // 右クリックはコンテキストメニューへ
     // クリック時に即座に不可視 textarea へフォーカス付与
     inputBridgeRef.current?.focus();
+    lastTypingRef.current = null;
 
     if (!rendererRef.current) return;
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -1092,6 +1141,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
         if (!selection) return;
         const text = buffer.getTextInRange(selection);
         navigator.clipboard.writeText(text);
+        onBeforeChange?.();
         buffer.deleteRange(selection);
         onSelectionChange(null);
         onContentChange();
@@ -1117,6 +1167,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
       action: async () => {
         const text = await navigator.clipboard.readText();
         if (text) {
+          onBeforeChange?.();
           if (selection) buffer.deleteRange(selection);
           const newPos = buffer.insert(cursor, text);
           onSelectionChange(null);
@@ -1132,6 +1183,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
       icon: <DeleteIcon size={14} />,
       action: () => {
         if (selection) {
+          onBeforeChange?.();
           buffer.deleteRange(selection);
           onSelectionChange(null);
           onContentChange();
@@ -1192,6 +1244,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
         } else if (/[A-Z]/.test(text)) {
           reconverted = text.toLowerCase();
         }
+        onBeforeChange?.();
         buffer.deleteRange(selection);
         const endPos = buffer.insert(selection.start, reconverted);
         onSelectionChange({ start: selection.start, end: endPos, isBoxSelect: false });

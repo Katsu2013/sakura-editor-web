@@ -25,6 +25,7 @@ export interface InputBridgeHandlers {
   onZoomWheel?: (direction: number) => void;
   onWordComplete?: () => void;
   onIncrementalSearch?: (backward: boolean) => void;
+  onCompositionChange?: (text: string | null) => void;
   onSelectAll?: () => void;
   onSave?: () => void;
   onFind?: () => void;
@@ -124,20 +125,26 @@ export class InputBridge {
     ta.addEventListener('compositionstart', () => {
       this.isComposing = true;
       this.justComposed = false;
+      this.handlers.onCompositionChange?.('');
     });
 
-    ta.addEventListener('compositionupdate', () => {
-      // 変換中文字列の更新通知が必要ならここで行う
+    ta.addEventListener('compositionupdate', (e) => {
+      this.handlers.onCompositionChange?.(e.data || '');
     });
 
     ta.addEventListener('compositionend', (e) => {
       this.isComposing = false;
+      this.handlers.onCompositionChange?.(null);
       const text = e.data;
       if (text) {
         this.handlers.onInsertText(text);
       }
       ta.value = '';
+      // ブラウザによっては compositionend 後に重複 input が発火するため、同一タスク内のみ抑止
       this.justComposed = true;
+      setTimeout(() => {
+        this.justComposed = false;
+      }, 0);
     });
 
     // 2. 通常の入力イベント
@@ -226,8 +233,8 @@ export class InputBridge {
         return;
       }
 
-      // ブックマーク F11
-      if (e.key === 'F11') {
+      // ブックマーク設定/解除 Ctrl+F2 (F11 はアウトライン解析のためグローバル側で処理)
+      if (isCtrl && e.key === 'F2') {
         e.preventDefault();
         this.handlers.onBookmarkToggle?.();
         return;
@@ -271,10 +278,12 @@ export class InputBridge {
 
       // クリップボード
       if (isCtrl && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
         this.handlers.onCopy();
         return;
       }
       if (isCtrl && e.key.toLowerCase() === 'x') {
+        e.preventDefault();
         this.handlers.onCut();
         return;
       }

@@ -400,7 +400,7 @@ export class CanvasRenderer {
       const imeY = textAreaY + (cVisual.visualLine * lineHeight - scrollTop);
 
       ctx.fillStyle = '#ffffcc'; // 薄い黄色背景
-      const imeWidth = imeComposition.text.length * charWidth * 1.5;
+      const imeWidth = Math.max(charWidth, ctx.measureText(imeComposition.text).width);
       ctx.fillRect(imeX, imeY, imeWidth, lineHeight);
 
       // 下線

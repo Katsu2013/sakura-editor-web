@@ -2154,6 +2154,8 @@ export const App: React.FC = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+      // エディタ入力層 (InputBridge) が処理済みのキーは二重実行しない
+      if (e.defaultPrevented) return;
 
       // 1. キーコンビネーションの正規化
       const parts: string[] = [];
@@ -2217,6 +2219,7 @@ export const App: React.FC = () => {
         'F12': 'tag-jump',
         'Shift+F12': 'tag-jump-back',
         'Shift+F11': 'bm-toggle',
+        'Ctrl+F2': 'bm-toggle',
         'F2': 'bm-next',
         'Shift+F2': 'bm-prev',
         'Ctrl+Enter': 'diff-cmp',
@@ -3137,8 +3140,8 @@ export const App: React.FC = () => {
                       setCurrentCharCode(charCode);
                     }}
                     onSelectionChange={(sel) => updateCurrentDoc((d) => ({ ...d, selection: sel }))}
+                    onBeforeChange={pushUndoState}
                     onContentChange={() => {
-                      pushUndoState();
                       updateCurrentDoc((d) => ({ ...d, isModified: true }));
                     }}
                     onUndo={handleUndo}
@@ -3182,8 +3185,8 @@ export const App: React.FC = () => {
                     readOnly={!!currentDoc.isReadOnly}
                     onCursorChange={(pos) => setCursor2(pos)}
                     onSelectionChange={(sel) => setSelection2(sel)}
+                    onBeforeChange={pushUndoState}
                     onContentChange={() => {
-                      pushUndoState();
                       updateCurrentDoc((d) => ({ ...d, isModified: true }));
                     }}
                     onUndo={handleUndo}
@@ -3233,8 +3236,8 @@ export const App: React.FC = () => {
                     readOnly={!!currentDoc.isReadOnly}
                     onCursorChange={(pos) => setCursor3(pos)}
                     onSelectionChange={(sel) => setSelection3(sel)}
+                    onBeforeChange={pushUndoState}
                     onContentChange={() => {
-                      pushUndoState();
                       updateCurrentDoc((d) => ({ ...d, isModified: true }));
                     }}
                     onUndo={handleUndo}
@@ -3278,8 +3281,8 @@ export const App: React.FC = () => {
                     readOnly={!!currentDoc.isReadOnly}
                     onCursorChange={(pos) => setCursor4(pos)}
                     onSelectionChange={(sel) => setSelection4(sel)}
+                    onBeforeChange={pushUndoState}
                     onContentChange={() => {
-                      pushUndoState();
                       updateCurrentDoc((d) => ({ ...d, isModified: true }));
                     }}
                     onUndo={handleUndo}
@@ -3332,8 +3335,8 @@ export const App: React.FC = () => {
                     setCurrentCharCode(charCode);
                   }}
                   onSelectionChange={(sel) => updateCurrentDoc((d) => ({ ...d, selection: sel }))}
+                  onBeforeChange={pushUndoState}
                   onContentChange={() => {
-                    pushUndoState();
                     updateCurrentDoc((d) => ({ ...d, isModified: true }));
                   }}
                   onUndo={handleUndo}
@@ -3402,8 +3405,8 @@ export const App: React.FC = () => {
                       readOnly={!!currentDoc.isReadOnly}
                       onCursorChange={(pos) => setCursor2(pos)}
                       onSelectionChange={(sel) => setSelection2(sel)}
+                      onBeforeChange={pushUndoState}
                       onContentChange={() => {
-                        pushUndoState();
                         updateCurrentDoc((d) => ({ ...d, isModified: true }));
                       }}
                       onUndo={handleUndo}
